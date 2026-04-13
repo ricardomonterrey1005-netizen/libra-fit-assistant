@@ -1,7 +1,7 @@
 {
-  "name": "fitricardo",
-  "version": "4.0.0",
-  "description": "FitRicardo - Coach Inteligente con Libra AI",
+  "name": "libra-fit-assistant",
+  "version": "1.0.0",
+  "description": "Libra Fit Assistant - Coach Inteligente con IA",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",

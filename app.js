@@ -464,7 +464,7 @@ const App={
       <button class="btn-outline" data-a="export" style="width:100%">Exportar datos</button></div></div>`;
 
     h+=`<div class="sec"><div class="c" style="text-align:center;padding:16px"><div style="font-size:30px">💪</div>
-      <div style="font-weight:700;margin-top:4px">FitRicardo v4.0</div>
+      <div style="font-weight:700;margin-top:4px">Libra Fit Assistant v1.0</div>
       <div style="font-size:11px;color:var(--t3)">Backend seguro &bull; JWT Auth &bull; Encrypted DB</div></div></div>`;
 
     return h;

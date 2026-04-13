@@ -1,5 +1,5 @@
 // ================================================================
-//  FITRICARDO - SECURE SERVER
+//  LIBRA FIT ASSISTANT - SECURE SERVER
 //  Backend con autenticacion, base de datos encriptada, audit log
 // ================================================================
 
@@ -78,7 +78,7 @@ app.use('/api/audit', require('./routes/audit'));
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    server: 'FitRicardo Backend v1.0',
+    server: 'Libra Fit Assistant v1.0',
     uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString()
   });
@@ -111,7 +111,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('  ╔══════════════════════════════════════════╗');
-  console.log('  ║   FITRICARDO - SECURE SERVER v1.0        ║');
+  console.log('  ║   LIBRA FIT ASSISTANT - SECURE SERVER v1.0        ║');
   console.log('  ╠══════════════════════════════════════════╣');
   console.log(`  ║   Local:   http://localhost:${PORT}          ║`);
   console.log('  ║   Network: http://0.0.0.0:' + PORT + '          ║');

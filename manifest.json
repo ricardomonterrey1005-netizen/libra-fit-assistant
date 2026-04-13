@@ -1,7 +1,7 @@
 {
-  "name": "FitRicardo - Tu Coach Inteligente",
-  "short_name": "FitRicardo",
-  "description": "Coach inteligente de fitness y nutricion personalizado",
+  "name": "Libra Fit Assistant - Tu Coach Inteligente",
+  "short_name": "Libra Fit",
+  "description": "Coach inteligente de fitness y nutricion con asistente IA",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
@@ -10,7 +10,7 @@
   "categories": ["health", "fitness"],
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23ff5722'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle' fill='white'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E",
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23ff5722'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle' fill='white'%3E%E2%9A%96%3C/text%3E%3C/svg%3E",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"

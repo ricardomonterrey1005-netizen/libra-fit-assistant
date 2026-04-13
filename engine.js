@@ -48,7 +48,7 @@ function calBudget(){const p=getProfile();return{target:p.bmr?Math.round(p.bmr*1
 function todayCal(st,dow){
   let t=0;
   MEAL_ORDER.forEach(k=>{if(st.meals[k])t+=getMeal(k,dow).cal});
-  (st.extras||[]).forEach(e=>t+=e.cal);
+  (st.extras||[]).forEach(e=>{const c=Number(e.c);if(!isNaN(c))t+=c});
   return t;
 }
 function canIEat(foodKey,st,dow){

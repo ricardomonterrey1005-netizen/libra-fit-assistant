@@ -1,4 +1,4 @@
-const CACHE = 'fitricardo-v5';
+const CACHE = 'librafit-v1';
 const ASSETS = ['./index.html', './styles.css', './data.js', './engine.js', './libra.js', './app.js', './api.js'];
 
 self.addEventListener('install', e => {

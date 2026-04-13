@@ -26,10 +26,20 @@ const Libra = {
     return false;
   },
 
-  // ===== EXTRACT NUMBERS =====
+  // ===== EXTRACT NUMBERS (including Spanish words) =====
   nums(text) {
-    const matches = text.match(/\d+\.?\d*/g);
-    return matches ? matches.map(Number) : [];
+    const spanishNums = {un:1,uno:1,una:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,
+      medio:0.5,media:0.5,mitad:0.5,par:2,doce:12,once:11};
+    const n = this.norm(text);
+    const results = [];
+    // Extract digit numbers
+    const digitMatches = text.match(/\d+\.?\d*/g);
+    if (digitMatches) results.push(...digitMatches.map(Number));
+    // Extract Spanish word numbers
+    for (const [word, val] of Object.entries(spanishNums)) {
+      if (n.split(/\s+/).includes(word)) results.push(val);
+    }
+    return results.length ? results : [];
   },
 
   // ===== INTENT RECOGNITION =====
@@ -372,24 +382,33 @@ const Libra = {
           'almendra': 7, 'nuez': 20, 'taza': 205
         };
 
-        // Try to match partial items
         const qty = intent.qty || 1;
         let matched = false;
 
-        for (const [food, calPer] of Object.entries(partialMap)) {
-          if (nn.includes(food)) {
-            partialCal = qty * calPer;
-            partialDesc = `${qty} ${food}${qty > 1 ? 's' : ''}`;
-            matched = true;
-            break;
+        // Check for "la mitad" / "medio" - half of the full meal
+        if (nn.includes('mitad') || nn.includes('medio') || nn.includes('media')) {
+          const fullMeal = getMeal(mealKey, dow);
+          partialCal = Math.round(fullMeal.cal / 2);
+          partialDesc = `la mitad de ${fullMeal.label}`;
+          matched = true;
+        }
+
+        // Try to match specific partial food items
+        if (!matched) {
+          for (const [food, calPer] of Object.entries(partialMap)) {
+            if (nn.includes(food)) {
+              partialCal = qty * calPer;
+              partialDesc = `${qty} ${food}${qty > 1 ? 's' : ''}`;
+              matched = true;
+              break;
+            }
           }
         }
 
         // Try food database
         if (!matched && foodResults.length) {
           const f = foodResults[0];
-          partialCal = qty > 0 ? Math.round(f.c * Math.min(qty, 10) / (qty > 5 ? 1 : 1)) : f.c;
-          if (nn.includes('mitad') || nn.includes('medio')) partialCal = Math.round(f.c / 2);
+          partialCal = qty > 0 ? Math.round(f.c * Math.min(qty, 10)) : f.c;
           partialDesc = `${qty > 0 ? qty + ' ' : ''}${f.n}`;
           matched = true;
         }
