@@ -1,0 +1,13 @@
+{
+  "name": "fitricardo",
+  "version": "4.0.0",
+  "description": "FitRicardo - Coach Inteligente con Libra AI",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node server/index.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<title>FitRicardo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=4">
+<style>
+  /* Display-based page navigation - reliable cross-browser */
+  .pages-wrapper { display: block !important; width: 100% !important; min-width: 0 !important; flex: 1; overflow: hidden; transform: none !important }
+  .page { display: none !important; width: 100% !important; min-width: 0 !important; height: 100% }
+  .page.active { display: block !important }
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-container">
+    <div class="auth-logo">
+      <div class="auth-icon">💪</div>
+      <h1 class="auth-title">FitRicardo</h1>
+      <p class="auth-subtitle">Tu Coach Inteligente</p>
+    </div>
+    <div class="auth-form" id="authForm">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tabLogin" onclick="authUI.switchTab('login')">Iniciar Sesion</button>
+        <button class="auth-tab" id="tabRegister" onclick="authUI.switchTab('register')">Registrarse</button>
+      </div>
+      <div class="auth-field">
+        <label>Usuario</label>
+        <input type="text" id="authUser" placeholder="tu_usuario" autocapitalize="none" autocomplete="username">
+      </div>
+      <div class="auth-field">
+        <label>Contrasena</label>
+        <input type="password" id="authPass" placeholder="••••••" autocomplete="current-password">
+      </div>
+      <div class="auth-field hide" id="authPassConfirmField">
+        <label>Confirmar Contrasena</label>
+        <input type="password" id="authPassConfirm" placeholder="••••••">
+      </div>
+      <div class="auth-error hide" id="authError"></div>
+      <button class="auth-btn" id="authBtn" onclick="authUI.submit()">Entrar</button>
+      <div class="auth-offline" id="authOffline">
+        <button class="auth-link" onclick="authUI.offlineMode()">Usar sin cuenta (solo local)</button>
+      </div>
+    </div>
+    <div class="auth-security">
+      <span>🔒</span> Datos encriptados &bull; JWT Auth &bull; Audit Log
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <button class="btn-accent" id="modalClose" style="width:100%">Entendido 💪</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- LIBRA CHAT -->
+<button class="libra-fab" id="libraFab" onclick="libraUI.toggle()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
+    <path d="M12 3C7 3 3 6 3 9.5c0 2 1 3.5 2.5 4.5L4 18l3.5-2c1.4.6 3 1 4.5 1 5 0 9-3 9-6.5S17 3 12 3z"/>
+    <circle cx="8.5" cy="9.5" r="1" fill="currentColor"/><circle cx="12" cy="9.5" r="1" fill="currentColor"/><circle cx="15.5" cy="9.5" r="1" fill="currentColor"/>
+  </svg>
+</button>
+
+<div class="libra-panel hide" id="libraPanel">
+  <div class="libra-header">
+    <div class="libra-hdr-left">
+      <svg class="libra-logo" viewBox="0 0 40 40" width="32" height="32">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="2"/>
+        <line x1="10" y1="20" x2="30" y2="20" stroke="var(--accent)" stroke-width="2"/>
+        <circle cx="20" cy="14" r="3" fill="var(--accent)" opacity="0.3"/>
+        <polygon points="8,20 12,28 4,28" fill="var(--accent)" opacity="0.6"/>
+        <polygon points="32,20 36,28 28,28" fill="var(--accent)" opacity="0.6"/>
+        <line x1="20" y1="8" x2="20" y2="20" stroke="var(--accent)" stroke-width="1.5"/>
+      </svg>
+      <div>
+        <div class="libra-title">Libra</div>
+        <div class="libra-sub">Tu asistente inteligente</div>
+      </div>
+    </div>
+    <button class="libra-close" onclick="libraUI.toggle()">&times;</button>
+  </div>
+  <div class="libra-messages" id="libraMessages"></div>
+  <div class="libra-input-row">
+    <input type="text" class="libra-input" id="libraInput" placeholder="Escribe algo..." autocomplete="off">
+    <button class="libra-send" id="libraSend" onclick="libraUI.send()">
+      <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<!-- APP SHELL -->
+<div class="app hide" id="appShell">
+  <!-- PAGES CONTAINER (swipeable) -->
+  <div class="pages-wrapper" id="pagesWrapper">
+    <div class="page" id="pageHoy"></div>
+    <div class="page" id="pageComida"></div>
+    <div class="page" id="pageGym"></div>
+    <div class="page" id="pageProgreso"></div>
+    <div class="page" id="pagePerfil"></div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <button class="nav-btn active" data-idx="0">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>
+      <span>Hoy</span>
+    </button>
+    <button class="nav-btn" data-idx="1">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 010 8h-1M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>
+      <span>Comida</span>
+    </button>
+    <button class="nav-btn" data-idx="2">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 6.5h11M6.5 17.5h11M2 12h2m16 0h2M6.5 6.5v11M17.5 6.5v11"/></svg>
+      <span>Gym</span>
+    </button>
+    <button class="nav-btn" data-idx="3">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Progreso</span>
+    </button>
+    <button class="nav-btn" data-idx="4">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Perfil</span>
+    </button>
+  </nav>
+</div>
+
+<script src="api.js"></script>
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="libra.js"></script>
+<script src="app.js"></script>
+<script>
+// ===== LIBRA UI =====
+const libraUI = {
+  open: false,
+  toggle() {
+    this.open = !this.open;
+    document.getElementById('libraPanel').classList.toggle('hide', !this.open);
+    document.getElementById('libraFab').style.display = this.open ? 'none' : 'flex';
+    if (this.open) {
+      this.renderMessages();
+      setTimeout(() => document.getElementById('libraInput').focus(), 100);
+    }
+  },
+  send() {
+    const inp = document.getElementById('libraInput');
+    const text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    const result = Libra.chat(text);
+    if (!result) return;
+    this.renderMessages();
+    // Execute action
+    if (result.action === 'refresh') {
+      App.renderAll();
+      document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === App.idx));
+    } else if (result.action && result.action.type === 'navigate') {
+      App.goTo(result.action.page);
+      this.toggle(); // close chat
+    }
+    // Scroll to bottom
+    const mc = document.getElementById('libraMessages');
+    setTimeout(() => mc.scrollTop = mc.scrollHeight, 50);
+  },
+  renderMessages() {
+    const mc = document.getElementById('libraMessages');
+    if (!Libra.history.length) {
+      mc.innerHTML = `<div class="libra-welcome">
+        <svg viewBox="0 0 40 40" width="48" height="48"><circle cx="20" cy="20" r="18" fill="none" stroke="var(--accent)" stroke-width="2"/><line x1="10" y1="20" x2="30" y2="20" stroke="var(--accent)" stroke-width="2"/><polygon points="8,20 12,28 4,28" fill="var(--accent)" opacity="0.6"/><polygon points="32,20 36,28 28,28" fill="var(--accent)" opacity="0.6"/><line x1="20" y1="8" x2="20" y2="20" stroke="var(--accent)" stroke-width="1.5"/></svg>
+        <div style="font-size:16px;font-weight:700;color:var(--t1);margin-bottom:4px">Hola! Soy Libra</div>
+        <div>Tu asistente inteligente. Puedo modificar cualquier cosa en tu app.</div>
+        <div class="libra-chip-row">
+          <button class="libra-chip" onclick="document.getElementById('libraInput').value='que como hoy?';libraUI.send()">Que como hoy?</button>
+          <button class="libra-chip" onclick="document.getElementById('libraInput').value='como voy?';libraUI.send()">Como voy?</button>
+          <button class="libra-chip" onclick="document.getElementById('libraInput').value='ayuda';libraUI.send()">Que puedes hacer?</button>
+          <button class="libra-chip" onclick="document.getElementById('libraInput').value='que toca manana?';libraUI.send()">Que toca manana?</button>
+        </div>
+      </div>`;
+      return;
+    }
+    mc.innerHTML = Libra.history.map(m => {
+      const cls = m.role === 'user' ? 'user' : 'bot';
+      // Simple markdown: **bold** → <b>bold</b>
+      let html = m.text.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+      return `<div class="libra-msg ${cls}">${html}</div>`;
+    }).join('');
+    mc.scrollTop = mc.scrollHeight;
+  }
+};
+
+// ===== AUTH UI =====
+const authUI = {
+  mode: 'login',
+
+  switchTab(tab) {
+    this.mode = tab;
+    document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+    document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+    document.getElementById('authPassConfirmField').classList.toggle('hide', tab === 'login');
+    document.getElementById('authBtn').textContent = tab === 'login' ? 'Entrar' : 'Crear Cuenta';
+    document.getElementById('authError').classList.add('hide');
+  },
+
+  async submit() {
+    const user = document.getElementById('authUser').value.trim();
+    const pass = document.getElementById('authPass').value;
+    const errEl = document.getElementById('authError');
+
+    if (!user || !pass) {
+      errEl.textContent = 'Completa todos los campos';
+      errEl.classList.remove('hide');
+      return;
+    }
+
+    if (this.mode === 'register') {
+      const pass2 = document.getElementById('authPassConfirm').value;
+      if (pass !== pass2) {
+        errEl.textContent = 'Las contrasenas no coinciden';
+        errEl.classList.remove('hide');
+        return;
+      }
+    }
+
+    const btn = document.getElementById('authBtn');
+    btn.disabled = true;
+    btn.textContent = 'Cargando...';
+    errEl.classList.add('hide');
+
+    try {
+      if (this.mode === 'login') {
+        await Auth.login(user, pass);
+      } else {
+        await Auth.register(user, pass);
+        // Migrate existing localStorage data
+        await Sync.migrateToServer();
+      }
+      this.showApp();
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hide');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = this.mode === 'login' ? 'Entrar' : 'Crear Cuenta';
+    }
+  },
+
+  offlineMode() {
+    // Skip auth, use localStorage only
+    localStorage.setItem('fr_offline', '1');
+    this.showApp();
+  },
+
+  showApp() {
+    document.getElementById('authScreen').classList.add('hide');
+    document.getElementById('appShell').classList.remove('hide');
+    App.init();
+  },
+
+  showAuth() {
+    document.getElementById('authScreen').classList.remove('hide');
+    document.getElementById('appShell').classList.add('hide');
+  }
+};
+
+// Check auth state on load
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('modalClose').onclick = () => App.closeModal();
+  document.getElementById('modalOverlay').onclick = e => { if (e.target === e.currentTarget) App.closeModal(); };
+
+  // Enter key on auth form
+  document.getElementById('authPass').addEventListener('keyup', e => { if (e.key === 'Enter') authUI.submit(); });
+  document.getElementById('authUser').addEventListener('keyup', e => { if (e.key === 'Enter') document.getElementById('authPass').focus(); });
+
+  // Libra enter key
+  document.getElementById('libraInput').addEventListener('keyup', e => { if (e.key === 'Enter') libraUI.send(); });
+
+  if (Auth.isLoggedIn() || localStorage.getItem('fr_offline') === '1') {
+    authUI.showApp();
+  }
+});
+
+// Listen for auth changes
+Auth.onAuthChange(loggedIn => {
+  if (!loggedIn) authUI.showAuth();
+});
+</script>
+</body>
+</html>
