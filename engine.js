@@ -11,20 +11,63 @@ function tomorrow(){const d=new Date();d.setDate(d.getDate()+1);return d}
 
 // ===== STORAGE (localStorage + Server Sync) =====
 const S={
-  g(k,d=null){try{const v=localStorage.getItem('fr_'+k);return v?JSON.parse(v):d}catch(e){return d}},
+  _scope:'guest',
+  _prefix(k){return`fr_${this._scope}_${k}`},
+  setScope(userId){
+    this._scope=userId||'guest';
+    console.log('Storage scope:',this._scope);
+  },
+  g(k,d=null){try{const v=localStorage.getItem(this._prefix(k));return v?JSON.parse(v):d}catch(e){return d}},
   s(k,v){
-    localStorage.setItem('fr_'+k,JSON.stringify(v));
+    localStorage.setItem(this._prefix(k),JSON.stringify(v));
     // Sync to server if available
     if(typeof Sync!=='undefined'&&Sync.push)Sync.push(k,v);
   },
   d(k){
-    localStorage.removeItem('fr_'+k);
+    localStorage.removeItem(this._prefix(k));
     // Sync deletion to server
     if(typeof Sync!=='undefined'&&Auth?.isLoggedIn()&&typeof API_BASE!=='undefined'){
       fetch(`${API_BASE}/data/delete/${k}`,{
         method:'DELETE',headers:{'Authorization':'Bearer '+Auth.token}
       }).catch(()=>{});
     }
+  },
+  // Remove all keys for current scope
+  clearScope(){
+    const prefix=`fr_${this._scope}_`;
+    const toRemove=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key&&key.startsWith(prefix))toRemove.push(key);
+    }
+    toRemove.forEach(k=>localStorage.removeItem(k));
+    console.log(`Cleared ${toRemove.length} keys for scope: ${this._scope}`);
+  },
+  // Migrate old unscoped fr_ keys to a user scope
+  migrateOldKeys(userId){
+    const oldPrefix='fr_';
+    const newPrefix=`fr_${userId}_`;
+    // Skip keys that are auth-related or already scoped
+    const skipKeys=['fr_token','fr_user','fr_offline','fr_lastUser'];
+    const toMigrate=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key||!key.startsWith(oldPrefix))continue;
+      if(skipKeys.includes(key))continue;
+      // Skip if key is already scoped (fr_<userId>_ or fr_guest_)
+      const afterPrefix=key.slice(3); // after 'fr_'
+      if(afterPrefix.includes('_')&&(afterPrefix.startsWith('guest_')||afterPrefix.match(/^[0-9a-f]{8}-/)))continue;
+      toMigrate.push(key);
+    }
+    if(!toMigrate.length)return false;
+    toMigrate.forEach(key=>{
+      const shortKey=key.slice(3); // remove 'fr_'
+      const val=localStorage.getItem(key);
+      localStorage.setItem(newPrefix+shortKey,val);
+      localStorage.removeItem(key);
+    });
+    console.log(`Migrated ${toMigrate.length} old keys to scope: ${userId}`);
+    return true;
   }
 };
 

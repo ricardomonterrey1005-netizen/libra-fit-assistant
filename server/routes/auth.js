@@ -42,8 +42,17 @@ router.post('/register', registerLimiter, async (req, res) => {
     // Hash password (cost factor 12)
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Hash recovery PIN if provided
+    let hashedPin = null;
+    if (pin) {
+      if (!/^\d{4}$/.test(pin)) {
+        return res.status(400).json({ error: 'PIN debe ser de 4 digitos numericos.' });
+      }
+      hashedPin = await bcrypt.hash(pin, 10);
+    }
+
     // Create user
-    const user = db.createUser(username, hashedPassword);
+    const user = db.createUser(username, hashedPassword, hashedPin);
 
     // Generate token
     const token = generateToken(user);
@@ -229,6 +238,79 @@ router.post('/change-password', authRequired, async (req, res) => {
     res.json({ ok: true, message: 'Contrasena actualizada.' });
   } catch (e) {
     console.error('Password change error:', e);
+    res.status(500).json({ error: 'Error interno.' });
+  }
+});
+
+// ===== RECOVER PASSWORD (via PIN) =====
+router.post('/recover', loginLimiter, async (req, res) => {
+  try {
+    const { username, pin, newPassword } = req.body;
+
+    if (!username || !pin || !newPassword) {
+      return res.status(400).json({ error: 'Todos los campos son requeridos.' });
+    }
+    if (!/^\d{4}$/.test(pin)) {
+      return res.status(400).json({ error: 'PIN debe ser de 4 digitos.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Nueva contrasena: minimo 6 caracteres.' });
+    }
+
+    const user = db.findUser(username);
+    if (!user) {
+      db.log({
+        action: 'recover_failed',
+        detail: `User not found: ${username}`,
+        ip: req.ip,
+        status: 'failed'
+      });
+      return res.status(401).json({ error: 'Usuario o PIN incorrectos.' });
+    }
+
+    if (!user.recoveryPin) {
+      db.log({
+        action: 'recover_failed',
+        userId: user.id,
+        detail: 'No recovery PIN set',
+        ip: req.ip,
+        status: 'failed'
+      });
+      return res.status(400).json({ error: 'Esta cuenta no tiene PIN de recuperacion configurado.' });
+    }
+
+    // Verify PIN
+    const pinValid = await bcrypt.compare(pin, user.recoveryPin);
+    if (!pinValid) {
+      db.log({
+        action: 'recover_failed',
+        userId: user.id,
+        detail: 'Wrong recovery PIN',
+        ip: req.ip,
+        status: 'failed'
+      });
+      return res.status(401).json({ error: 'Usuario o PIN incorrectos.' });
+    }
+
+    // Reset password
+    const hashed = await bcrypt.hash(newPassword, 12);
+    db.updateUser(user.id, {
+      password: hashed,
+      failedAttempts: 0,
+      locked: false
+    });
+
+    db.log({
+      action: 'password_recovered',
+      userId: user.id,
+      detail: 'Password reset via recovery PIN',
+      ip: req.ip,
+      status: 'completed'
+    });
+
+    res.json({ ok: true, message: 'Contrasena actualizada exitosamente.' });
+  } catch (e) {
+    console.error('Recover error:', e);
     res.status(500).json({ error: 'Error interno.' });
   }
 });

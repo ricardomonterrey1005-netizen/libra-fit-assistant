@@ -27,6 +27,7 @@
       <h1 class="auth-title">Libra Fit</h1>
       <p class="auth-subtitle">Assistant &bull; Tu Coach Inteligente</p>
     </div>
+    <div class="auth-welcome hide" id="authWelcome"></div>
     <div class="auth-form" id="authForm">
       <div class="auth-tabs">
         <button class="auth-tab active" id="tabLogin" onclick="authUI.switchTab('login')">Iniciar Sesion</button>
@@ -44,10 +45,43 @@
         <label>Confirmar Contrasena</label>
         <input type="password" id="authPassConfirm" placeholder="••••••">
       </div>
+      <div class="auth-field hide" id="authPinField">
+        <label>PIN de recuperacion (4 digitos)</label>
+        <input type="text" id="authPin" placeholder="1234" maxlength="4" inputmode="numeric" pattern="[0-9]{4}" autocomplete="off">
+        <small style="color:var(--t3);font-size:11px">Guardalo bien. Sirve para recuperar tu cuenta si olvidas tu contrasena.</small>
+      </div>
       <div class="auth-error hide" id="authError"></div>
       <button class="auth-btn" id="authBtn" onclick="authUI.submit()">Entrar</button>
+      <div class="auth-forgot" id="authForgot">
+        <button class="auth-link" onclick="authUI.showRecover()" style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:8px">Olvide mi contrasena</button>
+      </div>
       <div class="auth-offline" id="authOffline">
         <button class="auth-link" onclick="authUI.offlineMode()">Usar sin cuenta (solo local)</button>
+      </div>
+    </div>
+    <!-- RECOVERY FORM -->
+    <div class="auth-form hide" id="recoverForm">
+      <div style="text-align:center;margin-bottom:16px">
+        <div style="font-size:24px;margin-bottom:4px">🔑</div>
+        <h3 style="color:var(--t1);margin:0">Recuperar Contrasena</h3>
+        <p style="color:var(--t3);font-size:13px;margin:4px 0 0">Ingresa tu usuario, PIN de recuperacion y nueva contrasena</p>
+      </div>
+      <div class="auth-field">
+        <label>Usuario</label>
+        <input type="text" id="recoverUser" placeholder="tu_usuario" autocapitalize="none">
+      </div>
+      <div class="auth-field">
+        <label>PIN de recuperacion</label>
+        <input type="text" id="recoverPin" placeholder="1234" maxlength="4" inputmode="numeric">
+      </div>
+      <div class="auth-field">
+        <label>Nueva contrasena</label>
+        <input type="password" id="recoverNewPass" placeholder="••••••">
+      </div>
+      <div class="auth-error hide" id="recoverError"></div>
+      <button class="auth-btn" id="recoverBtn" onclick="authUI.submitRecover()">Cambiar Contrasena</button>
+      <div style="text-align:center;margin-top:12px">
+        <button class="auth-link" onclick="authUI.hideRecover()" style="font-size:13px;color:var(--t3);background:none;border:none;cursor:pointer;text-decoration:underline">Volver al login</button>
       </div>
     </div>
     <div class="auth-security">
@@ -212,7 +246,9 @@ const authUI = {
     document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
     document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
     document.getElementById('authPassConfirmField').classList.toggle('hide', tab === 'login');
+    document.getElementById('authPinField').classList.toggle('hide', tab === 'login');
     document.getElementById('authBtn').textContent = tab === 'login' ? 'Entrar' : 'Crear Cuenta';
+    document.getElementById('authForgot').style.display = tab === 'login' ? '' : 'none';
     document.getElementById('authError').classList.add('hide');
   },
 
@@ -234,6 +270,12 @@ const authUI = {
         errEl.classList.remove('hide');
         return;
       }
+      const pin = document.getElementById('authPin').value.trim();
+      if (pin && !/^\d{4}$/.test(pin)) {
+        errEl.textContent = 'El PIN debe ser de 4 digitos numericos';
+        errEl.classList.remove('hide');
+        return;
+      }
     }
 
     const btn = document.getElementById('authBtn');
@@ -245,7 +287,8 @@ const authUI = {
       if (this.mode === 'login') {
         await Auth.login(user, pass);
       } else {
-        await Auth.register(user, pass);
+        const pin = document.getElementById('authPin').value.trim();
+        await Auth.register(user, pass, pin || undefined);
         // Migrate existing localStorage data
         await Sync.migrateToServer();
       }
@@ -259,9 +302,69 @@ const authUI = {
     }
   },
 
+  showRecover() {
+    document.getElementById('authForm').classList.add('hide');
+    document.getElementById('recoverForm').classList.remove('hide');
+    document.getElementById('recoverError').classList.add('hide');
+    // Pre-fill username if available
+    const lastUser = localStorage.getItem('fr_lastUser');
+    if (lastUser) document.getElementById('recoverUser').value = lastUser;
+  },
+
+  hideRecover() {
+    document.getElementById('recoverForm').classList.add('hide');
+    document.getElementById('authForm').classList.remove('hide');
+  },
+
+  async submitRecover() {
+    const user = document.getElementById('recoverUser').value.trim();
+    const pin = document.getElementById('recoverPin').value.trim();
+    const newPass = document.getElementById('recoverNewPass').value;
+    const errEl = document.getElementById('recoverError');
+
+    if (!user || !pin || !newPass) {
+      errEl.textContent = 'Completa todos los campos';
+      errEl.classList.remove('hide');
+      return;
+    }
+    if (!/^\d{4}$/.test(pin)) {
+      errEl.textContent = 'El PIN debe ser de 4 digitos';
+      errEl.classList.remove('hide');
+      return;
+    }
+    if (newPass.length < 6) {
+      errEl.textContent = 'La contrasena debe tener minimo 6 caracteres';
+      errEl.classList.remove('hide');
+      return;
+    }
+
+    const btn = document.getElementById('recoverBtn');
+    btn.disabled = true;
+    btn.textContent = 'Cambiando...';
+    errEl.classList.add('hide');
+
+    try {
+      await Auth.recover(user, pin, newPass);
+      this.hideRecover();
+      // Show success
+      const errMain = document.getElementById('authError');
+      errMain.textContent = 'Contrasena cambiada! Ahora puedes iniciar sesion.';
+      errMain.style.color = '#4ade80';
+      errMain.classList.remove('hide');
+      setTimeout(() => { errMain.style.color = ''; }, 5000);
+    } catch (e) {
+      errEl.textContent = e.message;
+      errEl.classList.remove('hide');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Cambiar Contrasena';
+    }
+  },
+
   offlineMode() {
-    // Skip auth, use localStorage only
+    // Skip auth, use localStorage only with guest scope
     localStorage.setItem('fr_offline', '1');
+    S.setScope('guest');
     this.showApp();
   },
 
@@ -274,6 +377,19 @@ const authUI = {
   showAuth() {
     document.getElementById('authScreen').classList.remove('hide');
     document.getElementById('appShell').classList.add('hide');
+    // Show welcome back message if last user known
+    const lastUser = localStorage.getItem('fr_lastUser');
+    const welcomeEl = document.getElementById('authWelcome');
+    if (lastUser) {
+      welcomeEl.textContent = 'Bienvenido de vuelta, ' + lastUser;
+      welcomeEl.classList.remove('hide');
+      welcomeEl.style.cssText = 'text-align:center;color:var(--accent);font-size:14px;font-weight:600;margin-bottom:12px;padding:8px;background:rgba(99,102,241,0.1);border-radius:8px;';
+      // Pre-fill username
+      const userInput = document.getElementById('authUser');
+      if (userInput && !userInput.value) userInput.value = lastUser;
+    } else {
+      welcomeEl.classList.add('hide');
+    }
   }
 };
 
@@ -289,7 +405,22 @@ document.addEventListener('DOMContentLoaded', () => {
   // Libra enter key
   document.getElementById('libraInput').addEventListener('keyup', e => { if (e.key === 'Enter') libraUI.send(); });
 
-  if (Auth.isLoggedIn() || localStorage.getItem('fr_offline') === '1') {
+  // Pre-fill last username
+  const lastUser = localStorage.getItem('fr_lastUser');
+  if (lastUser) {
+    document.getElementById('authUser').value = lastUser;
+    // Show welcome back message
+    const welcomeEl = document.getElementById('authWelcome');
+    welcomeEl.textContent = 'Bienvenido de vuelta, ' + lastUser;
+    welcomeEl.classList.remove('hide');
+    welcomeEl.style.cssText = 'text-align:center;color:var(--accent);font-size:14px;font-weight:600;margin-bottom:12px;padding:8px;background:rgba(99,102,241,0.1);border-radius:8px;';
+  }
+
+  if (Auth.isLoggedIn()) {
+    // Scope is already set in Auth.init()
+    authUI.showApp();
+  } else if (localStorage.getItem('fr_offline') === '1') {
+    S.setScope('guest');
     authUI.showApp();
   }
 });

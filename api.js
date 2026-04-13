@@ -21,6 +21,10 @@ const Auth = {
     this.token = localStorage.getItem('fr_token');
     const u = localStorage.getItem('fr_user');
     if (u) try { this.user = JSON.parse(u); } catch(e) {}
+    // Set storage scope immediately if user is loaded
+    if (this.user && this.user.id) {
+      S.setScope(this.user.id);
+    }
     if (this.token) this.verify();
   },
 
@@ -36,15 +40,21 @@ const Auth = {
     this._listeners.forEach(fn => fn(this.isLoggedIn()));
   },
 
-  async register(username, password) {
+  async register(username, password, pin) {
     const res = await fetch(`${API_BASE}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, pin: pin || undefined })
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error de registro');
     this._setAuth(data.token, data.user);
+    // Set user-scoped storage
+    S.setScope(data.user.id);
+    // Save last username for convenience
+    localStorage.setItem('fr_lastUser', username);
+    // Pull server data into scoped localStorage
+    await Sync.pullAll();
     return data;
   },
 
@@ -57,8 +67,24 @@ const Auth = {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error de login');
     this._setAuth(data.token, data.user);
+    // Set user-scoped storage and migrate old keys if needed
+    S.setScope(data.user.id);
+    S.migrateOldKeys(data.user.id);
+    // Save last username for convenience
+    localStorage.setItem('fr_lastUser', username);
     // Sync from server after login
     await Sync.pullAll();
+    return data;
+  },
+
+  async recover(username, pin, newPassword) {
+    const res = await fetch(`${API_BASE}/auth/recover`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, pin, newPassword })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error de recuperacion');
     return data;
   },
 
@@ -94,10 +120,15 @@ const Auth = {
   },
 
   logout() {
+    // Clear user's local data (safe - it's on server)
+    S.clearScope();
     this.token = null;
     this.user = null;
     localStorage.removeItem('fr_token');
     localStorage.removeItem('fr_user');
+    localStorage.removeItem('fr_offline');
+    // Reset to guest scope
+    S.setScope('guest');
     this._notify();
   },
 
@@ -163,7 +194,7 @@ const Sync = {
     this._syncing = false;
   },
 
-  // Pull all data from server to localStorage
+  // Pull all data from server to user-scoped localStorage
   async pullAll() {
     if (!Auth.isLoggedIn()) return;
     try {
@@ -172,24 +203,27 @@ const Sync = {
       });
       if (!res.ok) return;
       const { data } = await res.json();
-      // Write to localStorage
+      // Write to scoped localStorage using S.s (without triggering re-sync)
       for (const [key, value] of Object.entries(data)) {
-        localStorage.setItem('fr_' + key, JSON.stringify(value));
+        localStorage.setItem(S._prefix(key), JSON.stringify(value));
       }
-      console.log(`Synced ${Object.keys(data).length} keys from server`);
+      console.log(`Synced ${Object.keys(data).length} keys to scope: ${S._scope}`);
     } catch (e) {
       console.log('Sync pull failed (offline?):', e.message);
     }
   },
 
-  // Migrate all localStorage data to server
+  // Migrate current scope's localStorage data to server
   async migrateToServer() {
     if (!Auth.isLoggedIn()) return;
     const data = {};
+    const prefix = `fr_${S._scope}_`;
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key.startsWith('fr_') && key !== 'fr_token' && key !== 'fr_user') {
-        data[key] = localStorage.getItem(key);
+      if (key && key.startsWith(prefix)) {
+        // Send the short key (without scope prefix) to server
+        const shortKey = key.slice(prefix.length);
+        data[shortKey] = localStorage.getItem(key);
       }
     }
     if (!Object.keys(data).length) return;

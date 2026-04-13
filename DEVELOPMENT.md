@@ -5,7 +5,7 @@
 
 ---
 
-## Estado Actual: v1.0.0 - LIVE EN PRODUCCION
+## Estado Actual: v1.1.0 - LIVE EN PRODUCCION
 
 **URL:** https://libra-fit-app.onrender.com
 **Deploy:** Render.com Free Tier (auto-deploy desde GitHub master)
@@ -13,6 +13,36 @@
 ---
 
 ## Historial de Versiones (Changelog)
+
+### v1.1.0 (2026-04-13) - Auth & Session Refactor
+
+#### Funcionalidades entregadas:
+- [x] **User-scoped localStorage:** Cada usuario tiene datos aislados con prefix `fr_{userId}_{key}`
+- [x] **Modo guest aislado:** Datos guest bajo `fr_guest_` no se mezclan con datos de usuarios
+- [x] **Limpieza al logout:** S.clearScope() elimina datos locales del usuario (seguros en servidor)
+- [x] **Restauracion al login:** Sync.pullAll() descarga datos del servidor al scope del usuario
+- [x] **Migracion automatica:** Keys antiguas sin scope se migran al scope del usuario al primer login
+- [x] **PIN de recuperacion:** Campo opcional de 4 digitos en registro, hasheado con bcrypt en servidor
+- [x] **Endpoint de recovery:** POST /api/auth/recover valida username + PIN + nueva contrasena
+- [x] **UI de recovery:** Formulario "Olvide mi contrasena" con validacion completa
+- [x] **Ultimo usuario recordado:** Pre-llena username en login, muestra "Bienvenido de vuelta, X"
+- [x] **Multi-usuario en mismo dispositivo:** Datos completamente aislados por scope
+
+#### Archivos modificados:
+- `engine.js` - S object con _scope, setScope(), clearScope(), migrateOldKeys(), _prefix()
+- `api.js` - Auth.login/register/logout con scope management, Auth.recover(), Sync.pullAll() scoped
+- `index.html` - PIN field, recovery form, welcome back message, pre-fill username
+- `server/routes/auth.js` - PIN hashing en registro, POST /api/auth/recover endpoint
+- `server/db.js` - createUser() acepta hashedPin, campo recoveryPin en user object
+
+#### Decisiones tecnicas:
+- PIN hasheado con bcrypt (cost 10) en servidor - nunca en texto plano
+- Recovery usa rate limiter de login para prevenir brute force
+- migrateOldKeys() detecta keys no-scopeadas vs ya-scopeadas por formato UUID
+- clearScope() al logout previene data leak entre usuarios
+- fr_lastUser se almacena sin scope (global al dispositivo)
+
+---
 
 ### v1.0.0 (2026-04-13) - Release Inicial
 **Commit:** 92b65a3
@@ -166,7 +196,7 @@
 - [ ] Modo offline mas robusto (queue de sync)
 
 ### Prioridad Baja
-- [ ] Multi-usuario real (actualmente optimizado para 1)
+- [x] Multi-usuario real (implementado en v1.1.0 con user-scoped localStorage)
 - [ ] Cambiar plan de comidas desde la app
 - [ ] Integracion con Google Fit / Apple Health
 - [ ] Tema claro opcional
@@ -177,10 +207,16 @@
 ## Notas Tecnicas Importantes
 
 ### Sobre el Storage (engine.js):
-- `S.g(key)` lee de localStorage con prefix `fr_`
-- `S.s(key, val)` guarda en localStorage Y hace sync al servidor
-- `S.d(key)` elimina de localStorage Y del servidor
-- Los datos del dia se guardan como `day_YYYY-MM-DD`
+- `S._scope` contiene el userId actual o 'guest'
+- `S._prefix(key)` retorna `fr_{scope}_{key}` (ej: `fr_abc123_profile`)
+- `S.g(key)` lee de localStorage con prefix scopeado
+- `S.s(key, val)` guarda en localStorage scopeado Y hace sync al servidor
+- `S.d(key)` elimina de localStorage scopeado Y del servidor
+- `S.setScope(userId)` cambia el scope activo
+- `S.clearScope()` elimina todas las keys del scope actual
+- `S.migrateOldKeys(userId)` migra keys antiguas `fr_X` a `fr_{userId}_X`
+- Los datos del dia se guardan como `d_YYYY-MM-DD` (dentro del scope)
+- Keys globales (sin scope): `fr_token`, `fr_user`, `fr_offline`, `fr_lastUser`
 
 ### Sobre el Server (server/index.js):
 - Puerto: process.env.PORT || 3001

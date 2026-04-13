@@ -99,11 +99,12 @@ class Database {
     return this.users.find(u => u.username === username.toLowerCase());
   }
 
-  createUser(username, hashedPassword) {
+  createUser(username, hashedPassword, hashedPin) {
     const user = {
       id: crypto.randomUUID(),
       username: username.toLowerCase(),
       password: hashedPassword,
+      recoveryPin: hashedPin || null,
       createdAt: new Date().toISOString(),
       lastLogin: null,
       loginCount: 0,

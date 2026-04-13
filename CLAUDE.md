@@ -7,7 +7,7 @@
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Tipo:** PWA (Progressive Web App) - Coach de fitness con IA
 **Usuario:** Ricardo Monterrey (Panama)
 **Idioma UI:** Espanol (todo en espanol, sin excepciones)
@@ -93,6 +93,39 @@ FitRicardo/
 - Datos encriptados en servidor (AES-256-CBC)
 - localStorage como cache, servidor como fuente de verdad
 - Sync bidireccional automatico
+- **User-scoped localStorage:** Cada usuario tiene sus propios datos en localStorage con prefix `fr_{userId}_`
+- **Modo guest:** Datos locales bajo scope `fr_guest_`
+- **Recuperacion por PIN:** PIN de 4 digitos opcional en registro, endpoint POST /api/auth/recover
+- **Ultimo usuario:** Se recuerda el ultimo username en `fr_lastUser` y se pre-llena en login
+
+### 6. Sistema de Auth Detallado (v1.1.0)
+
+#### Storage Scoping (engine.js S object):
+- `S._scope` - ID del usuario actual o 'guest'
+- `S.setScope(userId)` - cambia el scope activo
+- `S._prefix(key)` - retorna `fr_{scope}_{key}`
+- `S.g(key)`, `S.s(key,val)`, `S.d(key)` - usan prefix con scope
+- `S.clearScope()` - elimina todas las keys del scope actual
+- `S.migrateOldKeys(userId)` - migra keys antiguas sin scope al scope del usuario
+
+#### Flujo Login:
+1. Auth.login() -> server valida -> _setAuth(token, user)
+2. S.setScope(user.id) -> localStorage ahora lee/escribe con prefix del usuario
+3. S.migrateOldKeys(user.id) -> migra datos viejos sin scope (una sola vez)
+4. Sync.pullAll() -> descarga datos del servidor al localStorage scopeado
+5. authUI.showApp() -> App.init()
+
+#### Flujo Logout:
+1. S.clearScope() -> elimina datos locales del usuario (seguros en servidor)
+2. token/user removidos de localStorage
+3. S.setScope('guest') -> scope vuelve a guest
+4. authUI.showAuth() -> muestra pantalla de login
+
+#### Flujo Recovery:
+1. Usuario hace click en "Olvide mi contrasena"
+2. Ingresa username + PIN de 4 digitos + nueva contrasena
+3. POST /api/auth/recover valida PIN hasheado con bcrypt
+4. Si es correcto, resetea contrasena y desbloquea cuenta
 
 ## Reglas de Desarrollo
 
@@ -113,6 +146,10 @@ FitRicardo/
 | "dos tortillas" no parseaba | RESUELTO | Agregar mapa de numeros espanol en nums() |
 | "la mitad del almuerzo" fallaba | RESUELTO | Detectar mitad/medio antes de buscar alimento |
 | API_BASE hardcoded puerto 3001 | RESUELTO | Usar auto-deteccion en api.js |
+| localStorage sin scope por usuario | RESUELTO | Keys ahora usan `fr_{userId}_{key}` con migracion automatica |
+| Datos visibles tras logout | RESUELTO | S.clearScope() limpia datos locales al salir |
+| Sin recuperacion de contrasena | RESUELTO | PIN de 4 digitos en registro + endpoint /api/auth/recover |
+| Multi-usuario en mismo dispositivo | RESUELTO | Cada usuario tiene su propio scope en localStorage |
 
 ## Contacto del Usuario
 - **Nombre:** Ricardo Monterrey
