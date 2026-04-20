@@ -35,7 +35,7 @@ Referencias obligatorias antes de features nuevos:
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant
-**Version:** 1.3.0
+**Version:** 2.0.0
 **Tipo:** PWA (Progressive Web App) - Coach de fitness con IA
 **Usuario:** Ricardo Monterrey (Panama)
 **Idioma UI:** Espanol (todo en espanol, sin excepciones)
@@ -179,6 +179,41 @@ FitRicardo/
 7. **ACTUALIZACION OBLIGATORIA:** Al hacer cualquier cambio, actualizar CLAUDE.md y DEVELOPMENT.md
 8. **Deploy:** Tras cambios, hacer commit + push a master. Render auto-deploya.
 
+## Novedades v2.0 (MAJOR)
+
+### Arquitectura v2.0
+Nuevos modulos que complementan el core:
+- `onboarding.js` - Flujo conversacional 13 pasos para perfil completo
+- `tracking.js` - Graficas SVG semanal/mensual/anual de cualquier metrica
+- `nutritionDB.js` - Base de datos alimentos con macros + alergenos + tags
+- `supplementsDB.js` - 24 suplementos con evidencia cientifica (Tier A-D)
+- `recommender.js` - Motor de recomendaciones + Libra Coach
+- `chatFeedback.js` - Feedback loop para entrenar chat sin IA
+- `server/routes/chat.js` - Endpoint para recibir chat misses
+
+### Investigacion cientifica en research/
+- TRAINING_SCIENCE.md - Periodizacion, dosis, reps por meta
+- NUTRITION_SCIENCE.md - Macros, calorias, dietas por meta
+- MICRONUTRIENTS.md - 13 vitaminas + 12 minerales + deteccion deficits
+- SUPPLEMENTS.md - ISSN, NIH, 75 suplementos evaluados
+
+### Cambios criticos
+1. **Cero datos hardcoded** - Usuarios nuevos empiezan 100% vacios
+2. **Sin guest mode** - Solo con cuenta autentificada
+3. **BMR/TDEE dinamicos** - Mifflin-St Jeor en engine.js
+4. **Horarios del usuario** - Notif.check lee settings.morningTime etc.
+5. **Quick-add FAB** - Comida/agua/peso/sup sobre la marcha
+6. **Libra Coach** - Desbloqueable a 7 dias de mejor racha
+7. **Tracking completo** - 7 metricas × 3 periodos (semana/mes/ano)
+
+### Filosofia (DESIGN_PRINCIPLES.md)
+- Minimalista · Intuitivo · Rapido · Util · Limpio
+- Cero spinners (optimistic UI)
+- Progressive disclosure
+- Todo en espanol natural
+- Touch targets >= 44-48px
+- 10 mandamientos inviolables
+
 ## Bugs Conocidos/Resueltos
 
 | Bug | Estado | Solucion |
@@ -197,6 +232,15 @@ FitRicardo/
 | App solo servia para plan de Ricardo | RESUELTO (v1.3.0) | UserMeals/UserRoutines permiten config personalizada por usuario |
 | Notificaciones sin auth | RESUELTO (v1.3.0) | Notif gated por Auth.isLoggedIn() |
 | Sin reporte de errores | RESUELTO (v1.3.0) | LogBuffer + boton en Perfil + admin panel |
+| Horarios Ricardo en notificaciones | RESUELTO (v2.0) | Notif.check usa horarios del usuario desde settings |
+| DEFAULT_SCHEDULE de Ricardo (Mie/Sab/Dom descanso) | RESUELTO (v2.0) | Schedule vacio por default, usuario configura en onboarding |
+| Sin sistema recomendador cientifico | RESUELTO (v2.0) | recommender.js + Libra Coach con evidencia cientifica |
+| Chat sin feedback loop | RESUELTO (v2.0) | chatFeedback.js + admin endpoint para entrenamiento |
+| Sin tracking mensual/anual | RESUELTO (v2.0) | tracking.js con graficas SVG semana/mes/ano |
+| Onboarding simple no captura contexto | RESUELTO (v2.0) | onboarding.js conversacional 13 pasos |
+| Modo invitado permitia datos compartidos | RESUELTO (v2.0) | Guest mode eliminado, solo con cuenta |
+| Sin quick-add sobre la marcha | RESUELTO (v2.0) | FAB flotante siempre visible con 4 acciones rapidas |
+| Sin deteccion de abuso suplementos | RESUELTO (v2.0) | SupplementsDB.checkCombinations + LibraCoach alerts |
 
 ## Novedades v1.3.0 (CONFIG PERSONALIZADA + ERROR REPORTING)
 

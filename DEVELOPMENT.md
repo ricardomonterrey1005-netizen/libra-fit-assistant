@@ -13,7 +13,83 @@ Regla de oro: *"Si te quita mas tiempo del que te da, estamos haciendolo mal."*
 
 ---
 
-## Estado Actual: v1.3.0 - LIVE EN PRODUCCION
+## Estado Actual: v2.0.0 - LIVE EN PRODUCCION
+
+### v2.0.0 (2026-04-19) - MAJOR RELEASE
+
+**Rebranding completo + limpieza total + arquitectura v2.0**
+
+#### Cambios criticos (breaking)
+- ELIMINADO todo el hardcode personal de Ricardo:
+  - MEALS plan diario (era el plan especifico de Ricardo)
+  - RUT_A/RUT_B/SCHED (sus rutinas y sus dias de entrenamiento)
+  - BATCH cooking (sus dias de cocinar)
+  - SUPS list (los suplementos que el tomaba)
+  - Notif con 9 horarios hardcoded a sus horas (6AM, 4:45AM, 9:50AM etc)
+  - Mensajes "entrenas 5 AM", "cama 10 PM"
+  - Profile default con name='Ricardo', age=29
+  - DEFAULT_SCHEDULE de routines.js con Mie/Sab/Dom descanso (sus dates)
+- ELIMINADO guest mode / "Usar sin cuenta" - solo acceso con cuenta
+- AGREGADO boton logout con confirmacion
+- Data.js ahora es solo constantes genericas + stubs vacios + Proxy
+  compat para EX/FOOD que delegan a ExerciseDB/FoodDB
+
+#### Nuevas caracteristicas
+- **Onboarding conversacional (13 pasos)**: nombre, datos basicos, meta
+  principal, detalle contextual de meta, lugar de entrenamiento,
+  frecuencia + horario gym, cardio, patron alimentario, horarios comidas,
+  alergias, suplementos, horarios recordatorios, resumen con BMR/TDEE.
+- **BMR/TDEE dinamicos** con Mifflin-St Jeor + activity multiplier
+- **Tracking completo**: 7 metricas (score/cal/protein/carbs/fat/fiber/
+  water) × 3 periodos (semana/mes/ano) + grafica de peso SVG
+- **Quick-add FAB siempre visible**: registrar comida/agua/peso/supp en
+  cualquier momento sin navegar
+- **nutritionDB.js**: 55+ alimentos con macros + alergenos + dietary tags
+- **supplementsDB.js**: 24 suplementos con evidencia cientifica (Tier A-D).
+  Detecta abuso de dosis y combinaciones peligrosas (yohimbina+cafeina,
+  5-HTP+antidepresivos, BCAA redundante, tribulus scam, etc.)
+- **exerciseDB.js**: 134 ejercicios estilo Hevy con goalFit scoring
+- **Recommender engine**: genera rutina semanal segun split optimo,
+  top alimentos por meta+alergenos, "armame menu con ingredientes",
+  stack de suplementos segun meta, deteccion micronutrientes en riesgo
+- **Libra Coach**: desbloqueable a 7 dias de mejor racha. Insights
+  personalizados: progreso vs meta, adherencia, hidratacion, warnings
+  de supplements, micronutrientes.
+- **Chat feedback loop**: chatFeedback.js captura misses/rejections y
+  los envia al admin panel para entrenamiento. Intent 'rejection' detecta
+  cuando usuario dice "no es eso", "estas mal", etc.
+
+#### Archivos nuevos (11)
+- onboarding.js, tracking.js, recommender.js, chatFeedback.js
+- nutritionDB.js, supplementsDB.js
+- server/routes/chat.js
+- research/TRAINING_SCIENCE.md, NUTRITION_SCIENCE.md
+- research/MICRONUTRIENTS.md, SUPPLEMENTS.md
+- SESSION_PROGRESS.md, ARCHITECTURE.md, AUDIT.md
+- DESIGN_PRINCIPLES.md, LIBRA_CHAT_SPEC.md, COMO_FUNCIONA.md, RESEARCH.md
+
+#### Archivos refactorizados completos
+- data.js (era 534 lineas hardcoded -> 150 lineas constantes genericas)
+- engine.js (Notif.check reescrito, BMR/TDEE agregados, eliminado hardcode)
+- meals.js (DEFAULT_TEMPLATE vacio)
+- routines.js (DEFAULT_SCHEDULE vacio, TEMPLATES opcionales)
+
+#### Decisiones tomadas
+- Migrar a Supabase: pendiente (persistencia Render ephemeral disk)
+- Staging environment: pendiente (branch staging + 2do deploy Render)
+- Sin dominio custom (mantener .onrender.com)
+- Sin IA en chat (rule-based NLP + feedback loop manual)
+- Sin email transaccional (recovery por PIN)
+
+#### Pendiente para v2.1
+- Migrar BD a Supabase (critical - datos se pierden en Render)
+- Staging environment + rollback UI en admin
+- Expandir nutritionDB de 55 a 200+ alimentos
+- Expandir chat patterns con sub-agentes (millones de variaciones)
+
+---
+
+### v1.3.0 (archive)
 
 **URL:** https://libra-fit-app.onrender.com
 **Admin:** https://libra-fit-app.onrender.com/admin.html
