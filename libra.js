@@ -247,7 +247,7 @@ const Libra = {
     }
 
     // --- MOTIVATION ---
-    if (this.fuzzy(n, ['cansado', 'no quiero', 'no puedo', 'desanima', 'desmotiv', 'aburrido', 'dificil', 'rindo', 'rendirme', 'floj', 'perez', 'no tengo ganas'])) {
+    if (this.fuzzy(n, ['cansado', 'no quiero', 'no puedo', 'desanima', 'desmotiv', 'aburrido', 'dificil', 'rindo', 'rendirme', 'floj', 'perez', 'no tengo ganas', 'dame animo', 'motivame', 'sin ganas', 'anima'])) {
       return { intent: 'motivation' };
     }
 
@@ -278,8 +278,103 @@ const Libra = {
       return { intent: 'reset_day' };
     }
 
+    // --- ASK TODAY / TODAY'S PLAN ---
+    if (this.fuzzy(n, ['que dia es hoy', 'que toca hoy', 'que tengo que hacer', 'que hago hoy', 'plan hoy'])) {
+      return { intent: 'ask_today' };
+    }
+
+    // --- ASK GYM TODAY ---
+    if (this.fuzzy(n, ['que toca de gym', 'rutina hoy', 'ejercicios hoy', 'gym hoy', 'que ejercicios toca'])) {
+      return { intent: 'ask_gym_today' };
+    }
+
+    // --- ASK NEXT MEAL ---
+    if (this.fuzzy(n, ['que como ahora', 'proxima comida', 'siguiente comida', 'que toca comer'])) {
+      return { intent: 'ask_meal_now' };
+    }
+
+    // --- ASK WATER ---
+    if (this.fuzzy(n, ['cuanta agua', 'agua que llevo', 'cuanto agua llevo', 'llevo de agua', 'agua llevo'])) {
+      return { intent: 'ask_water' };
+    }
+
+    // --- TIP / ADVICE ---
+    if (this.fuzzy(n, ['tip', 'consejo', 'que me recomiendas', 'dame un consejo', 'recomendacion'])) {
+      return { intent: 'tip' };
+    }
+
+    // --- FAQ / Fitness questions (fuzzy match knowledge base) ---
+    const faqAns = this.faqLookup(n);
+    if (faqAns) return { intent: 'faq', answer: faqAns };
+
     // --- UNKNOWN ---
     return { intent: 'unknown' };
+  },
+
+  // ===== FAQ KNOWLEDGE BASE =====
+  faq: [
+    { patterns: ['cuantas calorias debo comer', 'cuantas calorias necesito', 'calorias al dia', 'cuanto comer'],
+      response: () => {
+        const b = calBudget();
+        return `Tu presupuesto calorico personalizado:\n\n• **Meta:** ${b.target} cal/dia (deficit moderado)\n• **Minimo:** ${b.min} cal (no bajes de aqui)\n• **Maximo:** ${b.max} cal\n\nBajar 1 lb/sem = deficit de ~500 cal/dia.` ;
+      }},
+    { patterns: ['cuanta proteina', 'proteina necesito', 'gramos de proteina'],
+      response: () => {
+        const w = getWeights();
+        const lbs = w.length ? w[0].weight : (getProfile().wStart || 180);
+        const kg = lbs / 2.205;
+        const lo = Math.round(kg * 1.6), hi = Math.round(kg * 2.2);
+        return `Para construir musculo/quemar grasa: **${lo}-${hi}g de proteina/dia** (1.6-2.2g por kg).\n\nBasado en tu peso (${lbs} lbs = ${kg.toFixed(1)} kg). Divide en 4-5 comidas.`;
+      }},
+    { patterns: ['cuantos dias debo entrenar', 'cuantas veces entrenar', 'cuantos dias gym', 'frecuencia gym'],
+      response: '4-5 dias a la semana es ideal. Tu plan actual es 5 (A-B-A-B-A). Menos de 3 pierdes progreso, mas de 6 sin descanso = sobreentreno.\n\nDescansa minimo 1-2 dias por semana.'},
+    { patterns: ['es malo comer de noche', 'comer tarde engorda', 'comer en la noche'],
+      response: 'MITO. Lo que importa son las calorias TOTALES del dia, no la hora. Tu cena (8:30 PM) es parte del plan.\n\nLo unico real: si comes muy pesado antes de dormir puede afectar tu sueno.'},
+    { patterns: ['puedo beber cafe', 'el cafe engorda', 'cafe sirve'],
+      response: '**Cafe negro = SI.** Cero calorias, acelera metabolismo, mejora rendimiento en gym.\n\n• Evita: azucar, crema, saborizantes\n• No lo tomes despues de 2 PM (afecta sueno)\n• Max 400mg cafeina/dia (~4 tazas)'},
+    { patterns: ['cuanto peso pierdo', 'cuanto bajo por semana', 'cuanto puedo bajar'],
+      response: 'Saludable: **0.5-1 kg / 1-2 lbs por semana**.\n\nMas rapido = pierdes musculo + efecto rebote. Menos = puede que necesites mas deficit o cardio.\n\nNo te peses diario; el peso fluctua. Pesate 1-2x/sem mismo horario.'},
+    { patterns: ['cuando veo resultados', 'cuanto tardo en ver', 'cuando cambia'],
+      response: 'Timeline realista:\n\n• **2-4 semanas:** Tu te notas mejor (ropa, espejo)\n• **6-8 semanas:** Otros lo notan\n• **12 semanas:** Cambio visible dramatico\n\nLa constancia vence a la perfeccion. No te rindas en semana 3!'},
+    { patterns: ['tengo hambre', 'mucha hambre', 'me muero de hambre', 'sigo con hambre'],
+      response: 'Hambre real o antojo? Checklist:\n\n1. **Toma agua** (sed disfrazada de hambre)\n2. **Proteina/fibra:** yogurt griego, atun, almendras, huevo duro\n3. Si duermes mal, tienes mas hambre (dormir 7-8h)\n4. Si es antojo dulce: gelatina sin azucar, 1 fruta\n\nNO pases hambre extrema - puede romper tu racha.'},
+    { patterns: ['no bajo de peso', 'estoy estancado', 'estancamiento', 'plateau', 'ya no bajo'],
+      response: 'Plateau es NORMAL. Checklist:\n\n1. **Cuanto tiempo?** Menos de 2 sem = fluctuacion normal\n2. **Sueno:** <7h baja metabolismo\n3. **Estres:** cortisol retiene agua\n4. **Deficit real?** Trackea todo lo que comes por 3 dias\n5. **Cardio:** agrega 20 min mas\n6. **Recomp:** quizas ganaste musculo (buena senal)\n\nNo subas calorias. Se paciente.'},
+    { patterns: ['como subir de peso', 'ganar peso', 'ganar masa'],
+      response: 'Para ganar musculo:\n\n• **Superavit calorico:** +300-500 cal/dia sobre mantenimiento\n• **Proteina alta:** 2g/kg\n• **Gym pesado:** 4-5 dias, progresion de cargas\n• **Dormir 7-9h**\n\nGanarse 0.5-1 lb/sem es ideal. Mas rapido = mucha grasa.'},
+    { patterns: ['que es deficit', 'deficit calorico', 'que significa deficit'],
+      response: 'Deficit calorico = **comer MENOS de lo que tu cuerpo quema**. Es la unica forma de bajar grasa.\n\n• Deficit suave: 200-300 cal/dia\n• Deficit agresivo: 500-700 cal/dia\n• Muy agresivo: >800 (pierdes musculo)\n\nTu plan actual es deficit moderado.'},
+    { patterns: ['debo desayunar', 'ayuno intermitente', 'saltarse desayuno'],
+      response: 'Depende de ti. **Ayuno intermitente (16:8)** funciona si te acomoda, pero no es magia.\n\nLo importante es: calorias totales + proteina alta. Si prefieres desayunar, desayuna.\n\nTu plan tiene desayuno porque entrenas 5 AM (necesitas energia).'},
+    { patterns: ['cardio en ayunas', 'ayunas cardio'],
+      response: 'Cardio en ayunas NO quema mas grasa que cardio con comida (los estudios son claros).\n\nPero tiene ventaja: mas comodo hacerlo temprano antes de trabajar. Si te funciona mental/logisticamente: dale.'},
+    { patterns: ['cuanto descansar entre series', 'descanso entre series'],
+      response: '• **Fuerza (4-6 reps):** 2-3 min\n• **Hipertrofia (8-12 reps):** 60-90 seg\n• **Resistencia (15+ reps):** 30-45 seg\n\nTu plan es 45-60s porque es hipertrofia + eficiencia de tiempo.'},
+    { patterns: ['agua cuanto tomar', 'cuanta agua al dia'],
+      response: 'Minimo: **3-4 litros/dia** (mas si entrenas/calor).\n\nSenal: orina clara = bien hidratado. Orina amarilla oscura = toma mas.\n\nTu meta es 4L.'},
+  ],
+
+  faqLookup(normText) {
+    for (const item of this.faq) {
+      for (const p of item.patterns) {
+        if (normText.includes(p)) {
+          return typeof item.response === 'function' ? item.response() : item.response;
+        }
+      }
+    }
+    // Also try word-overlap match for loose queries
+    const words = normText.split(/\s+/).filter(w => w.length > 3);
+    let best = null, bestScore = 0;
+    for (const item of this.faq) {
+      for (const p of item.patterns) {
+        const pw = p.split(/\s+/);
+        let score = 0;
+        for (const w of words) if (pw.some(x => x.includes(w) || w.includes(x))) score++;
+        if (score >= 2 && score > bestScore) { bestScore = score; best = item; }
+      }
+    }
+    if (best) return typeof best.response === 'function' ? best.response() : best.response;
+    return null;
   },
 
   // ===== EXECUTE COMMAND =====
@@ -887,12 +982,100 @@ const Libra = {
         break;
       }
 
+      case 'ask_today': {
+        const sch = SCHED[dow];
+        response = `**Hoy (${DAY_NAMES[dow]}):**\n\n`;
+        if (sch.g) {
+          const r = sch.g === 'A' ? RUT_A : RUT_B;
+          response += `🏋️ ${r.name} (${r.time})\n`;
+        } else {
+          response += `😴 ${dow === 0 ? 'Descanso total' : 'Descanso activo'}\n`;
+        }
+        if (sch.c === true) response += `🏃 Cardio 6-7 PM\n`;
+        response += `\n🍽️ Comidas:\n`;
+        MEAL_ORDER.forEach(k => {
+          const m = getMeal(k, dow), done = st.meals[k];
+          response += `${done ? '✅' : '⬜'} ${m.time} ${m.label}\n`;
+        });
+        response += `\n💧 Agua: ${(st.water/1000).toFixed(1)} / 4L`;
+        break;
+      }
+
+      case 'ask_gym_today': {
+        const sch = SCHED[dow];
+        if (!sch.g) { response = 'Hoy es dia de descanso. Nada de gym!'; break; }
+        const r = sch.g === 'A' ? RUT_A : RUT_B;
+        response = `**${r.name}** (${r.time})\n\n`;
+        r.ex.forEach((e, i) => {
+          const g2 = EX[e.id], h = getExHist(e.id), lw = h.length ? h[0].weight : g2.dw;
+          const log = st.exLog[e.id];
+          const done = log?.sets?.every(s => s.done);
+          response += `${done ? '✅' : '⬜'} ${i+1}. ${g2.name}: ${e.s}x${e.r} (${lw}lbs)\n`;
+        });
+        break;
+      }
+
+      case 'ask_meal_now': {
+        const h = now.getHours();
+        let key;
+        if (h < 9) key = 'desayuno';
+        else if (h < 11) key = 'merienda1';
+        else if (h < 14) key = 'almuerzo';
+        else if (h < 18) key = 'merienda2';
+        else if (h < 21) key = 'cena';
+        else key = 'fibra';
+        const m = getMeal(key, dow);
+        response = `**${m.label}** (${m.time})\n${m.desc}\n~${m.cal} cal`;
+        if (m.alts?.length) response += `\n\nAlternativas:\n${m.alts.map(a => '→ ' + a).join('\n')}`;
+        break;
+      }
+
+      case 'ask_water': {
+        const pct = Math.min(100, Math.round(st.water / 4000 * 100));
+        response = `💧 Llevas **${(st.water/1000).toFixed(1)}L** de 4L (${pct}%).\n`;
+        if (st.water >= 4000) response += 'Meta cumplida! Brutal.';
+        else response += `Faltan ${((4000-st.water)/1000).toFixed(1)}L. Tomate un vaso YA.`;
+        break;
+      }
+
+      case 'tip': {
+        const tips = [
+          '💧 Toma un vaso de agua AL DESPERTAR. Activa metabolismo y te quita la sed acumulada.',
+          '🥩 Come proteina en CADA comida. Te llena mas y preserva musculo.',
+          '😴 Dormir <7h dispara cortisol y hambre al dia siguiente. Prioriza el sueno.',
+          '🏋️ Progresion gradual > intensidad maxima. Sube 2-5 lbs por semana.',
+          '📱 No uses el celular entre series. Descansa completo 45-60 seg.',
+          '🍽️ Mastica lento. Tardas 15 min en sentir saciedad.',
+          '☕ Cafe negro antes del gym = mas fuerza (cafeina activa el sistema).',
+          '🥗 Si no comes vegetales, TOMA FIBRA (psyllium). Sin excusa.',
+          '⏰ Entrena misma hora cada dia. Tu cuerpo se adapta mejor.',
+          '💪 Calidad > Cantidad. 3 series a muerte > 5 flojas.',
+          '🧠 Pesarse en la MISMA balanza, misma hora, mismo dia de la semana.',
+          '🚫 No existe "pecado del cheat day". Existe el DIA libre planeado.',
+        ];
+        response = tips[Math.floor(Math.random() * tips.length)];
+        break;
+      }
+
+      case 'faq': {
+        response = intent.answer;
+        break;
+      }
+
       default:
         // Check if we're awaiting confirmation
         if (this.context.awaitingConfirm) {
           return this.handleConfirm(intent);
         }
-        response = 'No entendi bien. Puedes preguntarme sobre comidas, ejercicios, peso, agua, suplementos, calorias... o dime "ayuda" para ver todo lo que puedo hacer!';
+        response = 'No estoy seguro que preguntaste. Puedo ayudarte con:\n\n' +
+          '• 🍽️ Registrar comidas ("ya desayune")\n' +
+          '• 💧 Tomar agua ("tome 500 ml")\n' +
+          '• 🏋️ Ejercicios ("que toca de gym?")\n' +
+          '• 📊 Ver tu progreso ("como voy?")\n' +
+          '• 🔥 Calorias ("cuanta agua llevo?")\n' +
+          '• 💡 Tips de fitness ("dame un consejo")\n' +
+          '• 💪 Motivarte ("dame animo")\n\n' +
+          'Intenta algo como: "que como hoy?", "cuanta agua llevo?", o "cuanta proteina necesito?"';
     }
 
     return { response, action };

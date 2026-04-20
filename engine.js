@@ -73,9 +73,9 @@ const S={
 
 function getDay(d=new Date()){return S.g('d_'+dk(d),{meals:{},water:0,exLog:{},cardioId:null,cardioDone:false,extras:[]})}
 function saveDay(st,d=new Date()){S.s('d_'+dk(d),st)}
-function getProfile(){return S.g('profile',{name:'Ricardo',age:29,gender:'masculino',height:null,wStart:null,wGoal:null,activity:'moderado',bodyFat:null,muscleMass:null,visceralFat:null,metaAge:null,bmr:null,notes:''})}
+function getProfile(){return S.g('profile',{name:'',age:null,gender:'masculino',height:null,wStart:null,wGoal:null,activity:'moderado',bodyFat:null,muscleMass:null,visceralFat:null,metaAge:null,bmr:null,notes:''})}
 function saveProfile(p){S.s('profile',p)}
-function getGoals(){return S.g('goals',{targetWeight:null,targetDate:'2026-05-10',startWeight:null})}
+function getGoals(){return S.g('goals',{targetWeight:null,targetDate:null,startWeight:null})}
 function saveGoals(g){S.s('goals',g)}
 function getSettings(){return S.g('settings',{notif:true,water:true,sleep:true,meal:true,gym:true,morning:true})}
 function saveSettings(s){S.s('settings',s)}

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Libra Fit - Admin</title>
+<style>
+  :root{
+    --bg:#000;--card:#0f0f0f;--card2:#161616;--border:#1c1c1c;
+    --accent:#ff5722;--accent2:#ff7043;
+    --t1:#fff;--t2:#a0a0a0;--t3:#5a5a5a;
+    --green:#4caf50;--red:#f44336;--yellow:#ffb300;--blue:#2196f3;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--t1);font-family:-apple-system,Segoe UI,Inter,sans-serif;padding:20px;min-height:100vh}
+  h1{font-size:24px;margin-bottom:4px}
+  .sub{color:var(--t2);font-size:13px;margin-bottom:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
+  .auth-box{max-width:400px;margin:80px auto}
+  input,select,button{font-family:inherit;font-size:14px}
+  input,select{width:100%;padding:12px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--t1);margin-bottom:10px}
+  button{padding:12px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;min-height:44px}
+  button:hover{background:var(--accent2)}
+  button.outline{background:transparent;border:1px solid var(--border);color:var(--t1)}
+  button.danger{background:var(--red)}
+  .err{color:var(--red);font-size:13px;margin:6px 0;min-height:18px}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+  .stat{background:var(--card2);padding:12px;border-radius:10px;text-align:center}
+  .stat-v{font-size:24px;font-weight:800;color:var(--accent)}
+  .stat-l{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--border)}
+  th{color:var(--t2);font-weight:600;font-size:11px;text-transform:uppercase}
+  td{color:var(--t1)}
+  .tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700}
+  .tag.ok{background:rgba(76,175,80,0.15);color:var(--green)}
+  .tag.bad{background:rgba(244,67,54,0.15);color:var(--red)}
+  .tag.warn{background:rgba(255,179,0,0.15);color:var(--yellow)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+  .row>*{flex:none}
+  .row select,.row input{flex:1;margin:0;min-width:150px}
+  .scroll{max-height:400px;overflow-y:auto}
+  .sec-t{font-size:14px;font-weight:700;margin-bottom:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px}
+  .hide{display:none}
+  a{color:var(--accent);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div id="login" class="auth-box">
+  <div class="card">
+    <h1>⚖️ Libra Admin</h1>
+    <div class="sub">Panel de monitoreo y backup</div>
+    <label style="font-size:12px;color:var(--t2)">Contrasena admin</label>
+    <input type="password" id="pw" placeholder="••••••" autofocus>
+    <div class="err" id="err"></div>
+    <button id="loginBtn" style="width:100%">Entrar</button>
+    <div style="margin-top:14px;font-size:11px;color:var(--t3);text-align:center">
+      <a href="/">Volver a la app</a>
+    </div>
+  </div>
+</div>
+
+<div id="panel" class="hide">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div>
+      <h1>⚖️ Libra Admin</h1>
+      <div class="sub">Panel de monitoreo y backup</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="outline" onclick="loadAll()">🔄 Refrescar</button>
+      <button class="outline" onclick="exportUsers()">💾 Export usuarios</button>
+      <button class="danger" onclick="logout()">Salir</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">📊 Stats</div>
+    <div class="stats-grid" id="statsGrid"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">👥 Usuarios</div>
+    <div class="scroll">
+      <table id="usersTable">
+        <thead><tr>
+          <th>Usuario</th><th>Creado</th><th>Ultimo login</th><th>Logins</th>
+          <th>Fallos</th><th>Bloqueado</th><th>PIN</th><th>Keys</th>
+        </tr></thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-t">📋 Audit Log</div>
+    <div class="row">
+      <select id="filterAction">
+        <option value="">Todas las acciones</option>
+      </select>
+      <button onclick="loadAudit()">Filtrar</button>
+    </div>
+    <div class="scroll">
+      <table id="auditTable">
+        <thead><tr><th>Fecha</th><th>Accion</th><th>Usuario</th><th>Detalle</th><th>Estado</th><th>IP</th></tr></thead>
+        <tbody id="auditBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let ADMIN_PW = sessionStorage.getItem('adminPw') || '';
+const API = '/api/admin';
+
+function $(id){return document.getElementById(id)}
+
+$('loginBtn').onclick = login;
+$('pw').addEventListener('keyup', e => { if (e.key === 'Enter') login(); });
+
+async function login() {
+  const pw = $('pw').value.trim();
+  if (!pw) return;
+  $('err').textContent = '';
+  try {
+    const r = await fetch(API + '/stats', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ password: pw })
+    });
+    const d = await r.json();
+    if (!r.ok) { $('err').textContent = d.error || 'Error'; return; }
+    ADMIN_PW = pw;
+    sessionStorage.setItem('adminPw', pw);
+    $('login').classList.add('hide');
+    $('panel').classList.remove('hide');
+    renderStats(d);
+    renderUsers(d.users);
+    loadAudit();
+  } catch (e) {
+    $('err').textContent = 'Error de red';
+  }
+}
+
+function logout() {
+  ADMIN_PW = '';
+  sessionStorage.removeItem('adminPw');
+  $('panel').classList.add('hide');
+  $('login').classList.remove('hide');
+  $('pw').value = '';
+}
+
+async function loadAll() {
+  if (!ADMIN_PW) return;
+  const r = await fetch(API + '/stats', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: ADMIN_PW })
+  });
+  if (!r.ok) { logout(); return; }
+  const d = await r.json();
+  renderStats(d);
+  renderUsers(d.users);
+  loadAudit();
+}
+
+function fmtUptime(s) {
+  const d = Math.floor(s/86400), h = Math.floor(s%86400/3600), m = Math.floor(s%3600/60);
+  if (d) return `${d}d ${h}h`;
+  if (h) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function fmtSize(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+
+function renderStats(d) {
+  const s = d.stats;
+  const totalLogins = d.users.reduce((a,u)=>a+(u.loginCount||0),0);
+  const locked = d.users.filter(u=>u.locked).length;
+  $('statsGrid').innerHTML = `
+    <div class="stat"><div class="stat-v">${s.totalUsers}</div><div class="stat-l">Usuarios</div></div>
+    <div class="stat"><div class="stat-v">${totalLogins}</div><div class="stat-l">Logins totales</div></div>
+    <div class="stat"><div class="stat-v">${locked}</div><div class="stat-l">Bloqueados</div></div>
+    <div class="stat"><div class="stat-v">${s.totalAuditEvents}</div><div class="stat-l">Audit events</div></div>
+    <div class="stat"><div class="stat-v">${fmtUptime(s.serverUptimeSec)}</div><div class="stat-l">Uptime</div></div>
+    <div class="stat"><div class="stat-v">${fmtSize(s.totalDataSize)}</div><div class="stat-l">Data size</div></div>
+  `;
+}
+
+function renderUsers(users) {
+  const fmt = x => x ? new Date(x).toLocaleString('es') : '—';
+  $('usersBody').innerHTML = users.map(u => `
+    <tr>
+      <td><b>${u.username}</b></td>
+      <td>${fmt(u.createdAt)}</td>
+      <td>${fmt(u.lastLogin)}</td>
+      <td>${u.loginCount}</td>
+      <td>${u.failedAttempts ? `<span class="tag warn">${u.failedAttempts}</span>` : '0'}</td>
+      <td>${u.locked ? '<span class="tag bad">SI</span>' : '<span class="tag ok">No</span>'}</td>
+      <td>${u.hasRecoveryPin ? '✓' : '—'}</td>
+      <td>${u.dataKeysCount}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadAudit() {
+  if (!ADMIN_PW) return;
+  const action = $('filterAction').value;
+  const url = API + '/audit?password=' + encodeURIComponent(ADMIN_PW) + (action ? '&action=' + encodeURIComponent(action) : '') + '&limit=200';
+  const r = await fetch(url);
+  if (!r.ok) return;
+  const d = await r.json();
+  renderAudit(d.logs);
+}
+
+function renderAudit(logs) {
+  // Populate filter dropdown
+  const sel = $('filterAction');
+  const current = sel.value;
+  const actions = [...new Set(logs.map(l => l.action))].sort();
+  if (sel.options.length < actions.length + 1) {
+    sel.innerHTML = '<option value="">Todas las acciones</option>' +
+      actions.map(a => `<option value="${a}" ${a === current ? 'selected' : ''}>${a}</option>`).join('');
+  }
+
+  const fmt = x => x ? new Date(x).toLocaleString('es') : '—';
+  const statusTag = s => {
+    if (s === 'completed') return '<span class="tag ok">ok</span>';
+    if (s === 'failed') return '<span class="tag bad">fail</span>';
+    if (s === 'blocked') return '<span class="tag bad">block</span>';
+    return s ? `<span class="tag warn">${s}</span>` : '';
+  };
+  $('auditBody').innerHTML = logs.map(l => `
+    <tr>
+      <td>${fmt(l.timestamp)}</td>
+      <td><b>${l.action}</b></td>
+      <td>${l.userId ? l.userId.slice(0,8) : '—'}</td>
+      <td>${(l.detail || '').slice(0,80)}</td>
+      <td>${statusTag(l.status)}</td>
+      <td>${l.ip || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+async function exportUsers() {
+  if (!ADMIN_PW) return;
+  const r = await fetch(API + '/export-users', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ password: ADMIN_PW })
+  });
+  if (!r.ok) { alert('Error exportando'); return; }
+  const d = await r.json();
+  const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `libra-users-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Auto-login if we have a cached password
+if (ADMIN_PW) {
+  $('pw').value = ADMIN_PW;
+  login();
+}
+</script>
+</body>
+</html>

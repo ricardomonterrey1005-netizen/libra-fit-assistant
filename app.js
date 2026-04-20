@@ -16,7 +16,119 @@ const App={
     this.setupNav();
     setInterval(()=>Notif.check(),60000);
     Notif.check();
-    if(!S.g('onb')){setTimeout(()=>this.modal('👋 Bienvenido!',`<p>Tu coach personal inteligente.</p><ul><li>Te dice que comer y cuando</li><li>Trackea ejercicios con pesos</li><li>Alertas y recordatorios</li><li>Te avisa si algo no va bien</li></ul><p><b>Instalar en celular:</b> Chrome → Menu → Agregar a pantalla</p>`),400);S.s('onb',1)}
+    const p0=getProfile();
+    if(!p0.name){setTimeout(()=>this.showOnboarding(),400)}
+    else if(!S.g('onb')){setTimeout(()=>this.modal('👋 Bienvenido!',`<p>Tu coach personal inteligente.</p><ul><li>Te dice que comer y cuando</li><li>Trackea ejercicios con pesos</li><li>Alertas y recordatorios</li><li>Te avisa si algo no va bien</li></ul><p><b>Instalar en celular:</b> Chrome → Menu → Agregar a pantalla</p>`),400);S.s('onb',1)}
+  },
+
+  // ===== ONBOARDING (first-time setup) =====
+  showOnboarding(){
+    const p=getProfile(),g=getGoals();
+    const body=`<p style="font-size:13px;color:var(--t2);margin-bottom:12px">Cuentame un poco sobre ti para personalizar tu plan.</p>
+      <div class="prof-row"><label>Nombre</label><input class="inp-sm" id="ob_name" value="${p.name||''}" placeholder="Tu nombre"></div>
+      <div class="prof-row"><label>Edad</label><input type="number" class="inp-sm" id="ob_age" value="${p.age||''}" placeholder="29"></div>
+      <div class="prof-row"><label>Genero</label><select class="inp-sm" id="ob_gender">
+        <option value="masculino" ${p.gender==='masculino'?'selected':''}>Masculino</option>
+        <option value="femenino" ${p.gender==='femenino'?'selected':''}>Femenino</option></select></div>
+      <div class="prof-row"><label>Altura (cm)</label><input type="number" class="inp-sm" id="ob_height" value="${p.height||''}" placeholder="175"></div>
+      <div class="prof-row"><label>Peso actual (lbs)</label><input type="number" class="inp-sm" id="ob_wStart" value="${p.wStart||''}" placeholder="195"></div>
+      <div class="prof-row"><label>Peso meta (lbs)</label><input type="number" class="inp-sm" id="ob_wGoal" value="${p.wGoal||''}" placeholder="175"></div>
+      <div class="prof-row"><label>Fecha meta</label><input type="date" class="inp-sm" id="ob_targetDate" value="${g.targetDate||''}"></div>
+      <button class="btn-accent" id="obSave" style="width:100%;margin-top:10px">💪 Empezar mi camino</button>`;
+    this.modal('👋 Bienvenido a Libra Fit!',body);
+    setTimeout(()=>{
+      const btn=document.getElementById('obSave');
+      if(btn)btn.onclick=()=>{
+        const np={...getProfile()};
+        np.name=(document.getElementById('ob_name').value||'').trim();
+        np.age=+document.getElementById('ob_age').value||null;
+        np.gender=document.getElementById('ob_gender').value;
+        np.height=+document.getElementById('ob_height').value||null;
+        np.wStart=+document.getElementById('ob_wStart').value||null;
+        np.wGoal=+document.getElementById('ob_wGoal').value||null;
+        if(!np.name){this.toast('Nombre es requerido');return}
+        saveProfile(np);
+        const gg=getGoals();
+        if(np.wStart){gg.startWeight=np.wStart;const ws=getWeights();if(!ws.length)saveWeights([{date:dk(),weight:np.wStart}])}
+        if(np.wGoal)gg.targetWeight=np.wGoal;
+        const td=document.getElementById('ob_targetDate').value;
+        if(td)gg.targetDate=td;
+        saveGoals(gg);
+        S.s('onb',1);
+        this.closeModal();
+        this.toast('✅ Perfil guardado!');
+        this.renderAll();
+      };
+    },50);
+  },
+
+  // ===== QUICK ADD FOOD =====
+  showQuickAddFood(){
+    const quick=[
+      {k:'arroz',n:'🍚 Arroz'},{k:'pollo',n:'🍗 Pollo'},{k:'huevo',n:'🥚 Huevo'},
+      {k:'tortilla',n:'🫓 Tortilla'},{k:'arepa',n:'🫓 Arepa'},{k:'manzana',n:'🍎 Manzana'},
+      {k:'platano',n:'🍌 Platano'},{k:'atun',n:'🐟 Atun'},{k:'yogurt',n:'🥛 Yogurt'},
+      {k:'almendras',n:'🌰 Almendras'}
+    ];
+    const body=`<div style="font-size:12px;color:var(--t2);margin-bottom:8px">Busca o elige una comida:</div>
+      <div class="search-row"><input class="search-inp" id="qaInp" placeholder="Ej: pizza, helado, carne..." style="flex:1">
+        <button class="btn-accent" data-a="qaSearch">Buscar</button></div>
+      <div id="qaRes" style="margin-top:8px;max-height:200px;overflow-y:auto"></div>
+      <div style="font-size:11px;color:var(--t3);margin:10px 0 6px">Rapidos:</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${quick.map(q=>`<button class="btn-outline" data-a="qaSel" data-k="${q.k}" style="min-height:48px;padding:10px">${q.n}</button>`).join('')}
+      </div>`;
+    this.modal('➕ Agregar comida',body);
+    setTimeout(()=>{
+      const inp=document.getElementById('qaInp');
+      if(inp){inp.focus();inp.onkeyup=e=>{if(e.key==='Enter')document.querySelector('[data-a=qaSearch]').click()}}
+    },50);
+  },
+
+  quickAddFood(foodKey){
+    const f=FOOD[foodKey];if(!f)return;
+    const qtyStr=prompt(`Cuantas porciones de ${f.n}? (${f.c} cal c/u)`, '1');
+    if(qtyStr===null)return;
+    const qty=parseFloat(qtyStr)||1;
+    const cal=Math.round(f.c*qty);
+    const st=getDay();
+    st.extras=st.extras||[];
+    st.extras.push({n:`${qty>1?qty+'x ':''}${f.n}`,c:cal});
+    saveDay(st);
+    this.closeModal();
+    this.toast(`✅ +${cal} cal (${f.n})`);
+    this.renderAll();
+  },
+
+  // ===== TRAIN NOW (streamlined gym flow) =====
+  showTrainNow(){
+    const dow=new Date().getDay(),sch=SCHED[dow],st=getDay();
+    if(!sch.g){this.modal('Descanso','<p>Hoy es descanso. No hay rutina para entrenar.</p>');return}
+    const rut=sch.g==='A'?RUT_A:RUT_B;
+    let body=`<div style="font-size:12px;color:var(--t2);margin-bottom:8px">${rut.name}</div>`;
+    rut.ex.forEach(ex=>{
+      const g=EX[ex.id],hist=getExHist(ex.id),last=hist[0];
+      const log=st.exLog[ex.id]||{w:last?last.weight:g.dw,sets:Array.from({length:ex.s},()=>({done:false}))};
+      const doneCount=log.sets.filter(s=>s.done).length;
+      body+=`<div class="c" style="padding:10px;margin-bottom:8px">
+        <div style="font-weight:700;font-size:14px">${g.name}</div>
+        <div style="font-size:11px;color:var(--t3);margin-bottom:6px">${ex.s}x${ex.r} · ${g.muscle}</div>`;
+      if(!g.isTime){
+        body+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+          <button class="btn-outline" data-a="tnAdj" data-e="${ex.id}" data-d="-5" style="min-height:44px;min-width:44px;padding:8px">-5</button>
+          <button class="btn-outline" data-a="tnAdj" data-e="${ex.id}" data-d="-2.5" style="min-height:44px;min-width:44px;padding:8px">-2.5</button>
+          <div style="flex:1;text-align:center;font-size:18px;font-weight:800;color:var(--accent)">${log.w} lbs</div>
+          <button class="btn-outline" data-a="tnAdj" data-e="${ex.id}" data-d="2.5" style="min-height:44px;min-width:44px;padding:8px">+2.5</button>
+          <button class="btn-outline" data-a="tnAdj" data-e="${ex.id}" data-d="5" style="min-height:44px;min-width:44px;padding:8px">+5</button>
+        </div>`;
+      }
+      body+=`<div style="display:flex;gap:6px;flex-wrap:wrap">`;
+      log.sets.forEach((s,si)=>{
+        body+=`<button class="${s.done?'btn-accent':'btn-outline'}" data-a="tnSet" data-e="${ex.id}" data-s="${si}" style="flex:1;min-height:48px;min-width:60px;padding:10px;font-weight:700">${s.done?'✅':'⬜'} S${si+1}</button>`;
+      });
+      body+=`</div><div style="font-size:11px;color:var(--t3);margin-top:4px">${doneCount}/${log.sets.length} series</div></div>`;
+    });
+    this.modal('💪 Entrenar ahora',body);
   },
 
   // ===== NAVIGATION =====
@@ -81,7 +193,7 @@ const App={
     if(sch.g){const r=sch.g==='A'?RUT_A:RUT_B;r.ex.forEach(e=>{tot+=e.s;const l=st.exLog[e.id];if(l?.sets)dn+=l.sets.filter(x=>x.done).length})}
     if(sch.c===true){tot++;if(st.cardioDone)dn++}
     const pct=tot?Math.round(dn/tot*100):0,circ=226.2,off=circ-circ*pct/100;
-    const left=dBetween(now,pk(g.targetDate||'2026-05-10'));
+    const left=g.targetDate?dBetween(now,pk(g.targetDate)):0;
     // Streak system
     Streaks.addDailyXP();
     const streak=Streaks.getCurrent(),bestStreak=Streaks.getBest();
@@ -94,11 +206,11 @@ const App={
     const calCol=cal>bud.max?'var(--red)':cal>bud.target?'var(--yellow)':'var(--green)';
     const p=getProfile();
 
-    let h=`<div class="hdr"><div class="hdr-row"><div><div class="hdr-greet">${br[0]} 👋</div><div class="hdr-name">${p.name||'Ricardo'} 💪</div>
+    let h=`<div class="hdr"><div class="hdr-row"><div><div class="hdr-greet">${br[0]} 👋</div><div class="hdr-name">${p.name||'Atleta'} 💪</div>
       <div class="hdr-date">${DAY_NAMES[dow]} ${now.getDate()} de ${MONTHS[now.getMonth()]}</div></div>
       <div class="streak-badge"><div class="streak-fire">🔥</div><div class="streak-num">${streak}</div><div class="streak-lbl">dias</div></div></div></div>`;
 
-    if(left>0)h+=`<div class="countdown"><div class="cd-label">META: 10 DE MAYO</div><div class="cd-num">${left}</div><div class="cd-sub">dias restantes 🎯</div></div>`;
+    if(left>0&&g.targetDate){const gd=pk(g.targetDate);h+=`<div class="countdown"><div class="cd-label">META: ${gd.getDate()} DE ${MONTHS[gd.getMonth()].toUpperCase()}</div><div class="cd-num">${left}</div><div class="cd-sub">dias restantes 🎯</div></div>`;}
 
     // === STREAK & LEVEL SECTION ===
     h+=`<div class="streak-section">
@@ -127,8 +239,10 @@ const App={
       <div class="mini-i"><div class="dot" style="background:var(--blue)"></div>${(st.water/1000).toFixed(1)}/4L</div>
       <div class="mini-i"><div class="dot" style="background:var(--green)"></div>${sch.g?'Gym':'Descanso'}</div></div></div></div>`;
 
-    // Calories summary
-    h+=`<div class="sec"><div class="sec-t">🔥 Calorias</div><div class="c">
+    // Calories summary + quick add button
+    h+=`<div class="sec"><div class="sec-t">🔥 Calorias</div>
+      <button class="btn-accent" data-a="quickAdd" style="width:100%;margin-bottom:8px;padding:14px;font-size:14px;font-weight:700">➕ Agregar algo que comi</button>
+      <div class="c">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
         <div><span style="font-size:24px;font-weight:800;color:${calCol}">${cal}</span><span style="font-size:12px;color:var(--t3)"> / ${bud.target} cal</span></div>
         <span style="font-size:11px;color:var(--t2)">Quedan: <b style="color:${calCol}">${Math.max(0,bud.target-cal)}</b></span></div>
@@ -254,7 +368,8 @@ const App={
     if(sub==='rutina'){
       if(sch.g){
         const rut=sch.g==='A'?RUT_A:RUT_B;
-        h+=`<div class="sec"><div style="font-size:11px;color:var(--t3);margin-bottom:8px">⏰ ${rut.time} | 45-60s descanso | 📵 Sin celular</div>`;
+        h+=`<div class="sec"><button class="btn-accent" data-a="trainNow" style="width:100%;padding:16px;font-size:16px;font-weight:800;margin-bottom:10px;min-height:56px">💪 Entrenar ahora</button>
+          <div style="font-size:11px;color:var(--t3);margin-bottom:8px">⏰ ${rut.time} | 45-60s descanso | 📵 Sin celular</div>`;
         rut.ex.forEach((ex,idx)=>{
           const g=EX[ex.id],hist=getExHist(ex.id),last=hist[0]||null,pr=hist.length?Math.max(...hist.map(x=>x.weight)):0;
           const log=st.exLog[ex.id]||{w:last?last.weight:g.dw,sets:Array.from({length:ex.s},()=>({done:false}))};
@@ -563,6 +678,29 @@ const App={
             this.modal('Audit Log',html)
           })
         }
+      }
+      if(a==='quickAdd'){this.showQuickAddFood();return}
+      if(a==='qaSel'){const k=t.dataset.k;this.quickAddFood(k);return}
+      if(a==='qaSearch'){
+        const q=document.getElementById('qaInp')?.value?.trim();if(!q)return;
+        const res=searchFood(q),rDiv=document.getElementById('qaRes');
+        if(!res.length){rDiv.innerHTML=`<div style="color:var(--t3);font-size:12px;padding:6px">No encontre "${q}". Prueba con otro nombre.</div>`;return}
+        rDiv.innerHTML=res.slice(0,8).map(f=>`<button class="btn-outline" style="width:100%;margin-bottom:4px;padding:10px;text-align:left;min-height:44px" data-a="qaSel" data-k="${f.k}"><b>${f.n}</b> <span style="color:var(--t3);float:right">${f.c} cal</span></button>`).join('');
+      }
+      if(a==='trainNow'){this.showTrainNow();return}
+      if(a==='tnSet'){
+        const eid=t.dataset.e,si=+t.dataset.s,dow2=new Date().getDay(),sch2=SCHED[dow2],rut=sch2.g==='A'?RUT_A:RUT_B,exDef=rut.ex.find(x=>x.id===eid);
+        if(!exDef)return;
+        if(!st.exLog[eid]){const h=getExHist(eid),lw=h.length?h[0].weight:EX[eid].dw;st.exLog[eid]={w:lw,sets:Array.from({length:exDef.s},()=>({done:false}))}}
+        st.exLog[eid].sets[si].done=!st.exLog[eid].sets[si].done;saveDay(st);
+        if(st.exLog[eid].sets.every(s=>s.done)&&st.exLog[eid].w>0){const h=getExHist(eid),td=dk();saveExHist(eid,[{date:td,weight:st.exLog[eid].w},...h.filter(x=>x.date!==td)].slice(0,100))}
+        this.showTrainNow();
+      }
+      if(a==='tnAdj'){
+        const eid=t.dataset.e,d=+t.dataset.d,dow2=new Date().getDay(),sch2=SCHED[dow2],rut=sch2.g==='A'?RUT_A:RUT_B,exDef=rut.ex.find(x=>x.id===eid);
+        if(!exDef)return;
+        if(!st.exLog[eid]){const h=getExHist(eid),lw=h.length?h[0].weight:EX[eid].dw;st.exLog[eid]={w:lw,sets:Array.from({length:exDef.s},()=>({done:false}))}}
+        st.exLog[eid].w=Math.max(0,st.exLog[eid].w+d);saveDay(st);this.showTrainNow();
       }
       if(a==='syncNow'){
         if(typeof Sync!=='undefined'){

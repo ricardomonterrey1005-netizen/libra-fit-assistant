@@ -73,6 +73,7 @@ app.use(express.static(path.join(__dirname, '..'), {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/data', require('./routes/data'));
 app.use('/api/audit', require('./routes/audit'));
+app.use('/api/admin', require('./routes/admin'));
 
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {

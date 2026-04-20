@@ -5,7 +5,7 @@
 
 ---
 
-## Estado Actual: v1.1.0 - LIVE EN PRODUCCION
+## Estado Actual: v1.2.0 - LIVE EN PRODUCCION
 
 **URL:** https://libra-fit-app.onrender.com
 **Deploy:** Render.com Free Tier (auto-deploy desde GitHub master)
@@ -13,6 +13,54 @@
 ---
 
 ## Historial de Versiones (Changelog)
+
+### v1.2.0 (2026-04-19) - Onboarding, Admin, UX Polish
+
+#### Bugs criticos resueltos:
+- [x] **Nuevo usuario ya no ve datos de Ricardo:** `getProfile()` default ahora tiene `name:''`, `age:null`. `getGoals()` default tiene `targetDate:null`.
+- [x] **Fallback UI:** `app.js` muestra `'Atleta'` en vez de `'Ricardo'` si no hay nombre; countdown solo se muestra si hay `goals.targetDate`, con label dinamico (`META: X DE MES`).
+- [x] **Registro servidor limpio:** `server/routes/auth.js` crea usuarios con `profile.name=''`, `goals.targetDate=null`, `mysups=[]`.
+
+#### Funcionalidades nuevas:
+- [x] **Onboarding modal** (`App.showOnboarding`): se dispara si `profile.name` vacio al iniciar. Pide nombre/edad/genero/altura/peso actual/peso meta/fecha meta. Guarda en profile + goals + bw.
+- [x] **Admin Panel** (`admin.html` + `server/routes/admin.js`):
+  - `POST /api/admin/stats` (password en body) → stats, lista de usuarios, audit reciente.
+  - `GET /api/admin/audit?password=X&action=Y&limit=N` → audit filtrable.
+  - `POST /api/admin/export-users` → JSON de backup con metadata (sin passwords/tokens).
+  - Password en env `ADMIN_PASSWORD` (default `LibraAdmin2026!`). Agregado a `render.yaml`.
+- [x] **Libra Chat expandido:**
+  - Nuevos intents: `ask_today`, `ask_gym_today`, `ask_meal_now`, `ask_water`, `tip`, `faq`.
+  - `Libra.faq` knowledge base con ~15 entradas: calorias, proteina, frecuencia gym, comer de noche, cafe, perdida semanal, plateau, hambre, cardio ayunas, descanso entre series, agua, etc.
+  - `faqLookup()` usa include literal + word-overlap scoring (>=2 palabras).
+  - Motivation acepta: `dame animo`, `motivame`, `sin ganas`.
+  - Fallback: sugerencias en lugar de "no entendi".
+- [x] **UX Calorias** (pagina Hoy):
+  - Boton grande "➕ Agregar algo que comi" → `App.showQuickAddFood()`.
+  - Modal con busqueda + 10 atajos (Arroz, Pollo, Huevo, Tortilla, Arepa, Manzana, Platano, Atun, Yogurt, Almendras).
+  - Prompt de cantidad → suma a `st.extras`.
+- [x] **UX Gym** (`App.showTrainNow()`):
+  - Boton "💪 Entrenar ahora" en top de rutina.
+  - Modal con todos los ejercicios de hoy. Controles +/- 5, +/- 2.5 lbs (min 44px). Series tap-friendly (min 48px).
+  - Auto-guarda en `exHist` al completar todas las series con peso > 0.
+- [x] **FOOD DB:** nuevos items `tortilla`, `platano`, `yogurt` (alias).
+
+#### Documentacion:
+- [x] `SECURITY.md` nuevo: bcrypt, JWT, AES, rate limits, lockout, audit, rotacion de claves, hardening.
+- [x] `CLAUDE.md` v1.2.0 con admin URL y seccion de novedades.
+
+#### Archivos modificados:
+- `engine.js` — defaults limpios en getProfile/getGoals.
+- `app.js` — showOnboarding, showQuickAddFood, showTrainNow, quickAddFood, nuevos data-a handlers.
+- `libra.js` — intents nuevos, Libra.faq + faqLookup, cases, fallback mejorado.
+- `data.js` — FOOD: tortilla, platano, yogurt.
+- `server/routes/auth.js` — registro con defaults limpios.
+- `server/routes/admin.js` — NUEVO.
+- `server/index.js` — monta `/api/admin`.
+- `render.yaml` — env `ADMIN_PASSWORD`.
+- `admin.html` — NUEVO.
+- `SECURITY.md` — NUEVO.
+
+---
 
 ### v1.1.0 (2026-04-13) - Auth & Session Refactor
 
@@ -126,17 +174,43 @@
 
 ## Motor NLP - Libra (libra.js)
 
-### Intents reconocidos:
+### Intents reconocidos (v1.2.0):
 | Intent | Patrones (espanol) | Accion |
 |--------|-------------------|--------|
 | log_meal | "comi", "desayune", "almorce" | Registra comida completa |
 | partial_meal | "solo comi", "la mitad", "no termine" | Ajusta calorias parcialmente |
-| add_water | "agua", "tome agua", "vaso" | Suma agua al tracking |
-| log_gym | "entrene", "hice gym", "ejercicio" | Registra sesion de gym |
+| log_water | "agua", "tome agua", "vaso" | Suma agua al tracking |
+| log_exercise | "hice X con Y libras" | Registra peso en ejercicio |
 | ask_streak | "racha", "puntos", "nivel", "xp" | Muestra info de gamificacion |
 | ask_calories | "calorias", "cuantas llevo" | Muestra resumen calorias |
-| set_weight | "peso", "me peso" | Registra peso corporal |
+| ask_today | "que toca hoy", "que dia es hoy" | Resumen del dia |
+| ask_gym_today | "rutina hoy", "ejercicios hoy" | Lista ejercicios de hoy |
+| ask_meal_now | "que como ahora", "proxima comida" | Siguiente comida por hora |
+| ask_water | "cuanta agua", "agua que llevo" | Muestra intake actual |
+| ask_progress | "como voy", "mi progreso" | Resumen semanal |
+| ask_food | "puedo comer X", "calorias de X" | Recomienda si comer algo |
+| tip | "tip", "consejo", "que me recomiendas" | Tip aleatorio |
+| motivation | "desanimado", "sin ganas", "motivame" | Mensaje motivacional |
+| faq | fuzzy match a Libra.faq | Respuesta educativa |
+| log_weight | "peso 190 libras", "me pese" | Registra peso |
+| modify_goal | "cambiar meta", "quiero pesar X" | Actualiza goal |
+| modify_profile | "tengo X anos", "mido X" | Actualiza profile |
+| toggle_setting | "activa/desactiva X" | Toggle notificaciones |
+| navigate | "ir a X" | Cambia pagina |
 | help | "ayuda", "que puedes", "comandos" | Muestra ayuda |
+
+### FAQ System (nuevo en v1.2.0)
+`Libra.faq` es un array de `{patterns: [...], response: string|function}`.
+- `faqLookup(normText)` primero busca `includes()` exacto.
+- Si no matchea, word-overlap scoring: palabras > 3 chars, si una palabra esta
+  contenida en (o contiene) alguna palabra del patron, suma 1 punto. Requiere >= 2.
+- Se llama desde `detectIntent()` despues de todos los otros intents pero antes
+  de `unknown`.
+
+Preguntas cubiertas: calorias necesarias (dinamico con calBudget),
+proteina (dinamico con peso), frecuencia gym, mito comer de noche, cafe,
+perdida semanal saludable, cuando veo resultados, hambre, plateau,
+ganar peso, que es deficit, desayunar/ayuno, cardio ayunas, descanso series, agua.
 
 ### Mapa de alimentos parciales (partialMap):
 | Alimento | Calorias por unidad |

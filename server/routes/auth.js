@@ -66,9 +66,9 @@ router.post('/register', registerLimiter, async (req, res) => {
       status: 'completed'
     });
 
-    // Initialize default data
+    // Initialize default data (blank - user completes onboarding)
     db.setData(user.id, 'profile', {
-      name: username,
+      name: '',
       age: null,
       gender: 'masculino',
       height: null,
@@ -86,10 +86,10 @@ router.post('/register', registerLimiter, async (req, res) => {
       notif: true, water: true, sleep: true,
       meal: true, gym: true, morning: true
     });
-    db.setData(user.id, 'mysups', ['creatina', 'fibra', 'multi']);
+    db.setData(user.id, 'mysups', []);
     db.setData(user.id, 'goals', {
       targetWeight: null,
-      targetDate: '2026-05-10',
+      targetDate: null,
       startWeight: null
     });
     db.setData(user.id, 'bw', []);

@@ -7,7 +7,7 @@
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Tipo:** PWA (Progressive Web App) - Coach de fitness con IA
 **Usuario:** Ricardo Monterrey (Panama)
 **Idioma UI:** Espanol (todo en espanol, sin excepciones)
@@ -15,6 +15,7 @@
 ## URLs y Accesos
 
 - **Produccion:** https://libra-fit-app.onrender.com
+- **Admin Panel:** https://libra-fit-app.onrender.com/admin.html (password: env `ADMIN_PASSWORD`)
 - **GitHub:** https://github.com/ricardomonterrey1005-netizen/libra-fit-assistant
 - **Render Dashboard:** dashboard.render.com (cuenta: ricardo.monterrey1005@gmail.com)
 - **Plan Render:** Free (se duerme tras inactividad, ~50s para despertar)
@@ -36,6 +37,8 @@
 ```
 FitRicardo/
   index.html        - HTML principal (SPA, 5 paginas)
+  admin.html        - Panel de administracion (password-protected)
+  SECURITY.md       - Documentacion completa de seguridad
   styles.css         - Estilos completos (dark theme, responsive)
   data.js            - Datos estaticos: comidas, ejercicios, horarios
   engine.js          - Motor principal: storage, helpers, calorias, rachas/XP
@@ -51,6 +54,11 @@ FitRicardo/
   server/
     index.js         - Backend Express completo
     package.json     - Dependencias del servidor
+    routes/
+      auth.js        - Registro, login, recovery
+      data.js        - CRUD datos por usuario
+      audit.js       - Audit log del usuario
+      admin.js       - Endpoints admin (v1.2.0)
     node_modules/    - (no se sube a git)
   icons/             - Iconos PWA
   .claude/
@@ -150,6 +158,43 @@ FitRicardo/
 | Datos visibles tras logout | RESUELTO | S.clearScope() limpia datos locales al salir |
 | Sin recuperacion de contrasena | RESUELTO | PIN de 4 digitos en registro + endpoint /api/auth/recover |
 | Multi-usuario en mismo dispositivo | RESUELTO | Cada usuario tiene su propio scope en localStorage |
+| Nuevo usuario veia datos de Ricardo | RESUELTO (v1.2.0) | Defaults vacios en getProfile/getGoals, registro servidor con name='' y targetDate=null |
+| Countdown usaba fecha hardcoded 2026-05-10 | RESUELTO (v1.2.0) | Solo muestra si hay goals.targetDate, label dinamico |
+| Chat Libra respondia "no entendi" mucho | RESUELTO (v1.2.0) | Nuevos intents + FAQ + fallback con sugerencias |
+
+## Novedades v1.2.0
+
+### Onboarding first-run
+- Al primer ingreso sin `profile.name`, `App.showOnboarding()` muestra un modal
+  pidiendo: nombre, edad, genero, altura, peso actual, peso meta, fecha meta.
+- Guarda en profile + goals + registra peso inicial en `bw` si no existe.
+- Se dispara desde `App.init()` antes del modal de bienvenida clasico.
+
+### Panel de Admin
+- `/admin.html` accesible con password (env `ADMIN_PASSWORD`, default `LibraAdmin2026!`).
+- Endpoints: `POST /api/admin/stats`, `GET /api/admin/audit`, `POST /api/admin/export-users`.
+- Muestra: stats (usuarios/logins/uptime/data size), tabla de usuarios, audit log filtrable.
+- Boton "Export usuarios" descarga JSON con metadata (sin passwords ni tokens).
+
+### Libra Chat mejorado
+- Nuevos intents: `ask_today`, `ask_gym_today`, `ask_meal_now`, `ask_water`, `tip`.
+- FAQ fuzzy-match con ~15 preguntas comunes (proteina, calorias, plateau, etc.) en `Libra.faq`.
+- Fallback con sugerencias en lugar de "no entendi".
+- Motivacion acepta: "dame animo", "motivame", "sin ganas".
+
+### UX Calorias
+- Boton grande "➕ Agregar algo que comi" en Hoy.
+- Modal quick-add: busqueda + 10 comidas rapidas (Arroz, Pollo, Huevo, Tortilla, Arepa, Manzana, Platano, Atun, Yogurt, Almendras).
+- Prompt de cantidad, suma a `st.extras`.
+
+### UX Gym
+- Boton "💪 Entrenar ahora" en top de Gym.
+- Modal streamlined con todos los ejercicios, botones +/- de peso, series tap-friendly (min 48px).
+- Al completar todas las series se auto-guarda en historial.
+
+### Seguridad
+- `SECURITY.md` documenta: bcrypt cost 12, JWT HS256 7d, AES-256-CBC,
+  rate limits, lockout 10 fallos, audit log, limitaciones, rotacion de claves.
 
 ## Contacto del Usuario
 - **Nombre:** Ricardo Monterrey
