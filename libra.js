@@ -188,6 +188,37 @@ const Libra = {
       return { intent: 'ask_calories' };
     }
 
+    // --- ASK PROTEIN / MACROS ---
+    if (this.fuzzy(n, ['cuanta proteina llevo', 'proteina llevo', 'proteina hoy', 'cuanta proteina he comido', 'mi proteina', 'me falta proteina', 'proteina necesito', 'cuanta proteina necesito', 'cuanta proteina debo'])) {
+      return { intent: 'ask_protein' };
+    }
+    if (this.fuzzy(n, ['mis macros', 'cuantos carbs', 'cuantas grasas', 'macros hoy', 'cuantos macros', 'macros de hoy'])) {
+      return { intent: 'ask_macros' };
+    }
+    if (this.fuzzy(n, ['que debo comer para completar', 'que me falta para', 'sugiere proteina', 'alimentos altos en proteina', 'que comer para proteina', 'que puedo comer de proteina', 'comer mas proteina'])) {
+      return { intent: 'suggest_protein' };
+    }
+
+    // --- PLAN A MEAL ("voy a desayunar/comer X gramos de Y") ---
+    if (this.fuzzy(n, ['voy a desayunar', 'voy a almorzar', 'voy a cenar', 'voy a merendar', 'voy a comer']) && this.nums(text).length) {
+      let meal = null;
+      if (this.fuzzy(n, ['desayun'])) meal = 'desayuno';
+      else if (this.fuzzy(n, ['almuer', 'almors', 'almorz'])) meal = 'almuerzo';
+      else if (this.fuzzy(n, ['cen', 'dinner'])) meal = 'cena';
+      else if (this.fuzzy(n, ['merendar', 'merienda'])) meal = new Date().getHours() < 13 ? 'merienda1' : 'merienda2';
+      const nums = this.nums(text);
+      const grams = nums.find(x => x >= 10 && x <= 2000);
+      // Detect food in text
+      let foodKey = null;
+      for (const [k, v] of Object.entries(FOOD)) {
+        const nm = this.norm(v.n);
+        if (n.includes(k.replace(/_/g, ' ')) || (nm.length > 3 && n.includes(nm.split(' ')[0]))) {
+          foodKey = k; break;
+        }
+      }
+      return { intent: 'plan_meal_food', meal, foodKey, grams: grams || 100 };
+    }
+
     // --- MODIFY GOAL ---
     if (this.fuzzy(n, ['mi meta', 'quiero pesar', 'quiero llegar', 'objetivo', 'cambiar meta', 'nueva meta', 'quiero bajar a'])) {
       const nums = this.nums(text);
@@ -765,6 +796,79 @@ const Libra = {
         break;
       }
 
+      case 'ask_protein': {
+        const mac = todayMacros(st, dow);
+        const tg = macroTargets();
+        const rem = Math.max(0, tg.p - mac.p);
+        response = `🥩 **Proteina hoy:** ${mac.p}g / ${tg.p}g\n`;
+        if (rem > 0) {
+          response += `Te faltan **${rem.toFixed(1)}g** de proteina.\n\n`;
+          response += `Opciones rapidas:\n`;
+          response += `• 150g pechuga pollo = 46g prot\n`;
+          response += `• 1 lata atun = 26g prot\n`;
+          response += `• 1 scoop whey = 24g prot\n`;
+          response += `• 150g yogurt griego = 15g prot\n`;
+          response += `• 3 huevos = 18g prot`;
+        } else {
+          response += `Meta cumplida! Brutal.`;
+        }
+        break;
+      }
+
+      case 'ask_macros': {
+        const mac = todayMacros(st, dow);
+        const tg = macroTargets();
+        response = `📊 **Macros hoy:**\n\n`;
+        response += `🔥 Calorias: ${mac.cal} / ${tg.cal}\n`;
+        response += `🥩 Proteina: ${mac.p}g / ${tg.p}g\n`;
+        response += `🍞 Carbs: ${mac.c}g / ${tg.c}g\n`;
+        response += `🧈 Grasas: ${mac.fat}g / ${tg.fat}g\n`;
+        response += `🌾 Fibra: ${mac.fib}g / ${tg.fib}g`;
+        break;
+      }
+
+      case 'suggest_protein': {
+        const mac = todayMacros(st, dow);
+        const tg = macroTargets();
+        const rem = Math.max(0, tg.p - mac.p);
+        // Get top high-protein foods from FOOD
+        const highP = Object.entries(FOOD)
+          .filter(([k,v]) => v.cat === 'proteina' && v.p100 && v.p100 >= 15)
+          .sort((a,b) => (b[1].p100||0) - (a[1].p100||0))
+          .slice(0, 8);
+        response = `💪 **Alimentos altos en proteina:**\n\n`;
+        highP.forEach(([k,v]) => {
+          response += `• ${v.n}: ${v.p100}g prot / 100g (${v.cal100} cal)\n`;
+        });
+        if (rem > 0) response += `\nTe faltan ${rem.toFixed(1)}g. Con 150g de pollo cubres casi la mitad.`;
+        break;
+      }
+
+      case 'plan_meal_food': {
+        if (!intent.foodKey) {
+          response = 'No reconoci el alimento. Ejemplo: "voy a desayunar 200g de salmon".';
+          break;
+        }
+        const f = FOOD[intent.foodKey];
+        const grams = intent.grams || 100;
+        const macros = foodMacros(intent.foodKey, grams);
+        response = `**${grams}g de ${f.n}:**\n`;
+        response += `🔥 ${macros.cal} cal · 🥩 ${macros.p}g prot · 🍞 ${macros.c}g carbs · 🧈 ${macros.fat}g grasa\n\n`;
+        // Register as extra
+        st.extras = st.extras || [];
+        st.extras.push({
+          n: `${grams}g ${f.n}`,
+          c: macros.cal,
+          p: macros.p,
+          cb: macros.c,
+          f: macros.fat
+        });
+        saveDay(st);
+        response += `Agregado a tus calorias de hoy. ✅`;
+        action = 'refresh';
+        break;
+      }
+
       case 'ask_calories': {
         const cal = todayCal(st, dow), bud = calBudget();
         response = `**Calorias hoy:**\n`;
@@ -1073,6 +1177,7 @@ const Libra = {
           '• 🏋️ Ejercicios ("que toca de gym?")\n' +
           '• 📊 Ver tu progreso ("como voy?")\n' +
           '• 🔥 Calorias ("cuanta agua llevo?")\n' +
+          '• 🥩 Macros ("cuanta proteina llevo?")\n' +
           '• 💡 Tips de fitness ("dame un consejo")\n' +
           '• 💪 Motivarte ("dame animo")\n\n' +
           'Intenta algo como: "que como hoy?", "cuanta agua llevo?", o "cuanta proteina necesito?"';

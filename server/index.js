@@ -74,6 +74,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/data', require('./routes/data'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/errors', require('./routes/errors'));
 
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {

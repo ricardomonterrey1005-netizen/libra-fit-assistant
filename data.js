@@ -88,7 +88,121 @@ const EX={
   biceps_triceps:{name:'Superserie: Biceps + Triceps',muscle:'Brazos',group:'Tren Superior',equip:'Mancuernas / Poleas',dw:10,
     how:'BICEPS: Curl 12 reps (palmas frente, flexiona codos, aprieta arriba)\nSIN DESCANSO\nTRICEPS: Extension sobre cabeza 12 reps (mancuerna ambas manos, extiende arriba)',
     muscles:'Biceps braquial, Braquial, Triceps (3 cabezas)',errors:'Mover codos | Usar impulso | Descansar entre ejercicios',
-    tip:'NO descansar entre biceps y triceps. Congestiona al maximo.',breath:'Exhala en contraccion, inhala al estirar',machine:'Mancuernas o Poleas'}
+    tip:'NO descansar entre biceps y triceps. Congestiona al maximo.',breath:'Exhala en contraccion, inhala al estirar',machine:'Mancuernas o Poleas'},
+
+  // ===== PECHO =====
+  press_banca:{name:'Press Banca Plano',muscle:'Pecho',group:'Tren Superior',equip:'Barra + Banco plano',dw:45,
+    how:'1. Acostado, espalda firme en banco\n2. Barra sobre el pecho medio\n3. Agarre un poco mas ancho que hombros\n4. Baja controlado al pecho\n5. Empuja hasta extender codos\n6. No rebotar',
+    muscles:'Pectoral mayor, Deltoides anterior, Triceps',errors:'Rebotar barra | Codos muy abiertos | Espalda despegada | No bajar hasta el pecho',
+    tip:'Bloquea escapulas contra el banco. Trayectoria suave.',breath:'Inhala al bajar, exhala al empujar',machine:'Banco plano + Barra'},
+  press_mancuernas:{name:'Press Mancuernas Plano',muscle:'Pecho',group:'Tren Superior',equip:'Mancuernas + Banco plano',dw:20,
+    how:'1. Acostado con mancuernas a la altura del pecho\n2. Palmas mirando hacia los pies\n3. Empuja arriba sin chocar\n4. Baja controlado 90°\n5. Core firme',
+    muscles:'Pectoral mayor, Deltoides anterior, Triceps',errors:'Chocar mancuernas | Bajar muy rapido | Arquear mucho',
+    tip:'Mancuernas dan mas rango de movimiento que barra.',breath:'Inhala al bajar, exhala al empujar',machine:'Banco plano + Mancuernas'},
+  aperturas:{name:'Aperturas con Mancuernas',muscle:'Pecho',group:'Tren Superior',equip:'Mancuernas + Banco',dw:10,
+    how:'1. Acostado, mancuernas arriba con codos semiflex\n2. Abre brazos en arco hacia los lados\n3. Siente el estiramiento del pecho\n4. Regresa juntando las manos arriba',
+    muscles:'Pectoral mayor, Deltoides anterior',errors:'Codos rectos | Peso excesivo | Bajar demasiado',
+    tip:'Peso ligero, enfoque en la contraccion del pecho.',breath:'Inhala al abrir, exhala al juntar',machine:'Banco + Mancuernas'},
+  fondos:{name:'Fondos en Paralelas',muscle:'Pecho + Triceps',group:'Tren Superior',equip:'Barras paralelas',dw:0,
+    how:'1. Sujeta las barras paralelas\n2. Inclina torso para enfocar pecho\n3. Baja hasta 90° en codos\n4. Empuja arriba sin bloquear codos\n5. Manten core activo',
+    muscles:'Pectoral inferior, Triceps, Deltoides anterior',errors:'Bajar demasiado | Torso recto (trabaja triceps) | Impulso',
+    tip:'Para pecho: inclina el torso. Para triceps: mantenlo recto.',breath:'Inhala al bajar, exhala al empujar',machine:'Dip Station o paralelas'},
+
+  // ===== ESPALDA =====
+  dominadas:{name:'Dominadas',muscle:'Espalda',group:'Tren Superior',equip:'Barra de dominadas',dw:0,
+    how:'1. Cuelgate con agarre pronado, manos ancho de hombros\n2. Activa escapulas primero\n3. Jala con los codos hasta subir menton sobre la barra\n4. Baja controlado, extiende completo',
+    muscles:'Dorsal ancho, Romboides, Biceps, Trapecio',errors:'Impulso | No completar rango | Subir solo con brazos',
+    tip:'Si no puedes: usa banda elastica o maquina asistida.',breath:'Exhala al subir, inhala al bajar',machine:'Barra fija o Assisted Pull-Up'},
+  remo_barra:{name:'Remo con Barra',muscle:'Espalda Media',group:'Tren Superior',equip:'Barra',dw:50,
+    how:'1. Parado, inclina torso 45°\n2. Agarra la barra ancho de hombros\n3. Jala hacia el abdomen bajo\n4. Aprieta escapulas arriba\n5. Baja controlado',
+    muscles:'Dorsal, Romboides, Trapecio medio, Biceps',errors:'Redondear espalda | Jalar con biceps | Demasiado peso',
+    tip:'Espalda neutra siempre. El movimiento es de los codos hacia atras.',breath:'Exhala al jalar, inhala al bajar',machine:'Barra libre'},
+  remo_mancuerna:{name:'Remo con Mancuerna',muscle:'Espalda (unilateral)',group:'Tren Superior',equip:'Mancuerna + Banco',dw:25,
+    how:'1. Rodilla y mano en el banco, torso paralelo al piso\n2. Mancuerna en mano libre\n3. Jala hacia la cadera\n4. Codo cerca del cuerpo\n5. Controla la bajada',
+    muscles:'Dorsal, Romboides, Biceps, Core',errors:'Rotar torso | Usar impulso | Hombro encogido',
+    tip:'Manten cadera y hombros paralelos al piso.',breath:'Exhala al jalar, inhala al bajar',machine:'Banco + Mancuerna'},
+  pulldown:{name:'Pulldown Polea Alta',muscle:'Espalda',group:'Tren Superior',equip:'Polea alta',dw:50,
+    how:'1. Sentado con muslos bajo el soporte\n2. Agarre pronado amplio\n3. Inclina torso 15°\n4. Jala la barra al pecho superior\n5. Aprieta escapulas y sube controlado',
+    muscles:'Dorsal ancho, Romboides, Biceps',errors:'Jalar detras del cuello | Balancearse | Codos hacia atras',
+    tip:'Piensa en llevar los codos hacia abajo y atras.',breath:'Exhala al jalar, inhala al subir',machine:'Lat Pulldown'},
+  jalones:{name:'Jalones Polea (agarre cerrado)',muscle:'Espalda',group:'Tren Superior',equip:'Polea alta + agarre V',dw:45,
+    how:'1. Sentado, agarre en V (palmas enfrentadas)\n2. Inclina torso ligeramente\n3. Jala al esternon\n4. Aprieta dorsales\n5. Sube controlado',
+    muscles:'Dorsal, Redondo mayor, Biceps',errors:'Mucho peso | No completar el rango | Balanceo',
+    tip:'Agarre cerrado = mas enfasis en mitad del dorsal.',breath:'Exhala al jalar, inhala al subir',machine:'Lat Pulldown + Agarre V'},
+
+  // ===== HOMBROS (extra) =====
+  press_mancuernas_hombro:{name:'Press Mancuernas Hombro',muscle:'Hombro',group:'Tren Superior',equip:'Mancuernas + Banco 90°',dw:15,
+    how:'1. Sentado con respaldo a 90°\n2. Mancuernas a la altura de orejas, palmas al frente\n3. Empuja arriba sin chocar\n4. Baja controlado\n5. Core apretado',
+    muscles:'Deltoides anterior, Medio, Triceps',errors:'Arquear espalda | Bloquear codos | Chocar mancuernas',
+    tip:'Si duele el hombro, usa agarre neutro (palmas enfrentadas).',breath:'Exhala al empujar, inhala al bajar',machine:'Banco 90° + Mancuernas'},
+  posteriores:{name:'Vuelos Posteriores',muscle:'Hombro Posterior',group:'Tren Superior',equip:'Mancuernas',dw:8,
+    how:'1. Inclina torso 45° adelante\n2. Mancuernas colgando\n3. Abre brazos hacia atras como alas\n4. Codos ligeramente flexionados\n5. Aprieta escapulas\n6. Baja controlado',
+    muscles:'Deltoides posterior, Romboides, Trapecio',errors:'Mucho peso | Usar impulso | Levantar hombros',
+    tip:'Peso muy ligero. Enfoque en sentir la parte trasera del hombro.',breath:'Exhala al subir, inhala al bajar',machine:'Mancuernas o Reverse Fly Machine'},
+
+  // ===== BRAZOS =====
+  curl_biceps_barra:{name:'Curl Biceps con Barra',muscle:'Biceps',group:'Tren Superior',equip:'Barra Z o recta',dw:30,
+    how:'1. De pie, agarre supino ancho de hombros\n2. Codos pegados al torso\n3. Flexiona subiendo la barra al pecho\n4. Aprieta biceps arriba\n5. Baja controlado',
+    muscles:'Biceps braquial, Braquial, Antebrazo',errors:'Balancearse | Mover codos | No extender abajo',
+    tip:'Si usas impulso, baja el peso. Control > ego.',breath:'Exhala al subir, inhala al bajar',machine:'Barra Z o recta'},
+  curl_biceps_mancuernas:{name:'Curl Biceps con Mancuernas',muscle:'Biceps',group:'Tren Superior',equip:'Mancuernas',dw:12,
+    how:'1. De pie o sentado, mancuernas a los lados\n2. Palmas al frente o neutras\n3. Flexiona subiendo al hombro\n4. Rota palmas hacia arriba (supinacion)\n5. Baja controlado',
+    muscles:'Biceps braquial, Braquial',errors:'Mover codos | Balanceo | Mucho peso',
+    tip:'Supinacion en la subida activa mas biceps.',breath:'Exhala al subir, inhala al bajar',machine:'Mancuernas'},
+  extension_triceps:{name:'Extension de Triceps en Polea',muscle:'Triceps',group:'Tren Superior',equip:'Polea alta + cuerda/barra',dw:30,
+    how:'1. De pie frente a polea alta\n2. Agarra cuerda o barra\n3. Codos pegados al cuerpo\n4. Extiende hacia abajo hasta bloquear\n5. Sube controlado sin separar codos',
+    muscles:'Triceps (3 cabezas)',errors:'Mover codos | Usar espalda | Mucho peso',
+    tip:'Codos como bisagras fijas.',breath:'Exhala al extender, inhala al subir',machine:'Polea alta + Cuerda'},
+  martillo:{name:'Curl Martillo',muscle:'Biceps/Braquial',group:'Tren Superior',equip:'Mancuernas',dw:12,
+    how:'1. De pie, mancuernas a los lados\n2. Palmas enfrentadas (agarre neutro)\n3. Flexiona sin rotar\n4. Sube al hombro\n5. Baja controlado',
+    muscles:'Braquial, Biceps, Antebrazo',errors:'Balanceo | Mover codos | Rotar muneca',
+    tip:'Agarre neutro protege la muneca y activa braquial.',breath:'Exhala al subir, inhala al bajar',machine:'Mancuernas'},
+
+  // ===== PIERNAS =====
+  sentadilla:{name:'Sentadilla con Barra',muscle:'Piernas',group:'Tren Inferior',equip:'Barra + Rack',dw:60,
+    how:'1. Barra sobre trapecio\n2. Pies ancho de hombros, puntas ligeramente afuera\n3. Baja como sentandote atras\n4. Muslos paralelos al piso\n5. Sube empujando con talones',
+    muscles:'Cuadriceps, Gluteos, Isquiotibiales, Core',errors:'Rodillas adentro | Talones despegados | Espalda redondeada',
+    tip:'Pecho arriba, mirada al frente, core firme.',breath:'Inhala al bajar, exhala al subir',machine:'Squat Rack + Barra'},
+  prensa:{name:'Prensa de Piernas',muscle:'Piernas',group:'Tren Inferior',equip:'Maquina de prensa',dw:150,
+    how:'1. Sientate en la maquina, espalda firme\n2. Pies ancho de hombros en plataforma\n3. Baja hasta 90° en rodillas\n4. Empuja sin bloquear codos\n5. No despegar cadera',
+    muscles:'Cuadriceps, Gluteos, Isquiotibiales',errors:'Bloquear rodillas | Bajar poco | Cadera despega',
+    tip:'Pies mas altos en plataforma = mas gluteo.',breath:'Inhala al bajar, exhala al empujar',machine:'Leg Press 45°'},
+  curl_femoral:{name:'Curl Femoral',muscle:'Isquiotibiales',group:'Tren Inferior',equip:'Maquina',dw:40,
+    how:'1. Acostado boca abajo en maquina\n2. Tobillos bajo el rodillo\n3. Flexiona rodillas llevando talones a gluteos\n4. Aprieta arriba 1 seg\n5. Baja controlado',
+    muscles:'Isquiotibiales, Gemelos',errors:'Despegar cadera | Balanceo | Mucho peso',
+    tip:'Controla la bajada 3 segundos.',breath:'Exhala al flexionar, inhala al bajar',machine:'Leg Curl Machine'},
+  extension_cuadriceps:{name:'Extension de Cuadriceps',muscle:'Cuadriceps',group:'Tren Inferior',equip:'Maquina',dw:40,
+    how:'1. Sentado en maquina, tobillos bajo rodillo\n2. Espalda contra respaldo\n3. Extiende rodillas\n4. Aprieta cuadriceps arriba 1 seg\n5. Baja controlado',
+    muscles:'Cuadriceps (4 cabezas)',errors:'Balanceo | Bloquear rodilla bruscamente | Mucho peso',
+    tip:'Extension completa + pausa arriba = mas activacion.',breath:'Exhala al extender, inhala al bajar',machine:'Leg Extension'},
+  peso_muerto:{name:'Peso Muerto',muscle:'Espalda baja + Piernas',group:'Tren Inferior',equip:'Barra',dw:70,
+    how:'1. Pies bajo la barra ancho de cadera\n2. Agarra la barra fuera de las piernas\n3. Pecho arriba, espalda neutra\n4. Sube empujando el piso con las piernas\n5. Extiende cadera al final, aprieta gluteos',
+    muscles:'Gluteos, Isquiotibiales, Dorsal, Trapecio, Core',errors:'Redondear espalda | Separar barra del cuerpo | Hiperextender arriba',
+    tip:'La barra debe subir pegada a las piernas.',breath:'Inhala antes de subir, exhala al final',machine:'Barra + Discos'},
+  zancadas:{name:'Zancadas con Mancuernas',muscle:'Piernas + Gluteos',group:'Tren Inferior',equip:'Mancuernas',dw:15,
+    how:'1. De pie, mancuernas a los lados\n2. Da un paso al frente largo\n3. Baja hasta rodilla trasera casi toca\n4. Empuja con el talon delantero\n5. Alterna piernas',
+    muscles:'Cuadriceps, Gluteos, Isquiotibiales, Core',errors:'Rodilla pasa punta del pie | Paso corto | Torso inclinado',
+    tip:'Paso largo = mas gluteo. Paso corto = mas cuadriceps.',breath:'Inhala al bajar, exhala al subir',machine:'Mancuernas'},
+
+  // ===== GLUTEOS (extra) =====
+  abduccion_cadera:{name:'Abduccion de Cadera',muscle:'Gluteo medio',group:'Tren Inferior',equip:'Maquina abductora',dw:40,
+    how:'1. Sentado en maquina, espalda firme\n2. Rodillas contra las almohadillas\n3. Abre piernas contra la resistencia\n4. Aprieta gluteo medio\n5. Cierra controlado',
+    muscles:'Gluteo medio, Gluteo menor',errors:'Mover torso | Mucho peso | Rango corto',
+    tip:'Inclinate ligeramente al frente para mas activacion.',breath:'Exhala al abrir, inhala al cerrar',machine:'Hip Abductor'},
+
+  // ===== CORE =====
+  crunches:{name:'Crunches Abdominales',muscle:'Abdomen',group:'Core',equip:'Colchoneta',dw:0,
+    how:'1. Acostado boca arriba, rodillas flexionadas\n2. Manos en las sienes (no jalar cuello)\n3. Contrae abdomen subiendo hombros\n4. Pausa arriba 1 seg\n5. Baja controlado',
+    muscles:'Recto abdominal superior',errors:'Jalar cuello | Subir mucho | Impulso',
+    tip:'El movimiento es pequeno. La clave es la contraccion.',breath:'Exhala al subir, inhala al bajar',machine:'Mat'},
+  elevacion_piernas:{name:'Elevacion de Piernas',muscle:'Abdomen inferior',group:'Core',equip:'Colchoneta o barra',dw:0,
+    how:'1. Acostado boca arriba, manos bajo gluteos\n2. Piernas estiradas\n3. Sube piernas hasta 90°\n4. Baja sin tocar el piso\n5. Manten abdomen apretado',
+    muscles:'Recto abdominal inferior, Flexores de cadera',errors:'Despegar espalda baja | Balanceo | No controlar la bajada',
+    tip:'Si duele la espalda, flexiona ligeramente las rodillas.',breath:'Exhala al subir, inhala al bajar',machine:'Mat o Captain Chair'},
+  russian_twist:{name:'Russian Twist',muscle:'Oblicuos',group:'Core',equip:'Mancuerna o disco',dw:10,
+    how:'1. Sentado con rodillas flexionadas\n2. Torso inclinado 45° atras\n3. Pies arriba del piso (opcional)\n4. Rota de lado a lado con peso\n5. Toca el piso a cada lado',
+    muscles:'Oblicuos, Recto abdominal, Core',errors:'Mover brazos solos | Espalda redondeada | Poco rango',
+    tip:'La rotacion viene del torso, no de los brazos.',breath:'Normal y constante',machine:'Mat + Mancuerna'}
 };
 
 const RUT_A={id:'A',name:'Rutina A: Gluteos y Pecho',time:'5:00-6:00 AM',
@@ -155,6 +269,157 @@ const FOOD={
   gatorade:{n:'Gatorade',c:80,p:0,cb:21,f:0,v:'warn',note:'Solo post-ejercicio intenso.'}
 };
 
+// ===== EXTENDED FOOD DATABASE (macros per 100g) =====
+// Structure: cat='proteina|carbo|vegetal|fruta|grasa|snack|bebida'
+// cal100, p100, c100, f100, fib100 = per 100g
+// serving = typical g serving, unit = textual unit description
+// v='ok|bad|warn', note = Spanish tip
+// Also populates legacy fields (c, p, cb, f) = per serving for canIEat() compat.
+const FOOD_EXT={
+  // PROTEINAS
+  pollo_pechuga:{n:'Pechuga de Pollo',cat:'proteina',cal100:165,p100:31,c100:0,f100:3.6,fib100:0,serving:150,unit:'150g = 1 pechuga',v:'ok',note:'Proteina magra top. Base de tu dieta.'},
+  res_magra:{n:'Carne de Res (magra)',cat:'proteina',cal100:217,p100:26,c100:0,f100:12,fib100:0,serving:150,unit:'150g = 1 corte',v:'ok',note:'Buena proteina + hierro. Corta magra.'},
+  res_molida:{n:'Carne Molida 90/10',cat:'proteina',cal100:176,p100:20,c100:0,f100:10,fib100:0,serving:150,unit:'150g',v:'ok',note:'Verifica que sea magra (90/10).'},
+  cerdo_lomo:{n:'Lomo de Cerdo',cat:'proteina',cal100:143,p100:26,c100:0,f100:3.5,fib100:0,serving:150,unit:'150g',v:'ok',note:'Cerdo magro, excelente proteina.'},
+  salmon_f:{n:'Salmon',cat:'proteina',cal100:208,p100:22,c100:0,f100:13,fib100:0,serving:150,unit:'150g = 1 filete',v:'ok',note:'Omega 3. Come 1-2x por semana.'},
+  atun_lata:{n:'Atun en agua (lata)',cat:'proteina',cal100:116,p100:26,c100:0,f100:1,fib100:0,serving:100,unit:'100g = 1 lata',v:'ok',note:'Super proteina, casi cero grasa.'},
+  atun_aceite:{n:'Atun en aceite',cat:'proteina',cal100:200,p100:25,c100:0,f100:11,fib100:0,serving:100,unit:'100g = 1 lata',v:'warn',note:'Preferible en agua para menos grasa.'},
+  pescado_blanco:{n:'Pescado Blanco (corvina/tilapia)',cat:'proteina',cal100:96,p100:20,c100:0,f100:1.7,fib100:0,serving:150,unit:'150g = 1 filete',v:'ok',note:'Magro y liviano. Excelente cena.'},
+  camaron_f:{n:'Camarones',cat:'proteina',cal100:99,p100:24,c100:0.2,f100:0.3,fib100:0,serving:100,unit:'100g',v:'ok',note:'Baja cal, alta proteina. A la plancha.'},
+  pavo_pechuga:{n:'Pechuga de Pavo',cat:'proteina',cal100:135,p100:30,c100:0,f100:1,fib100:0,serving:150,unit:'150g',v:'ok',note:'Muy magra. Alternativa al pollo.'},
+  jamon_pavo:{n:'Jamon de Pavo',cat:'proteina',cal100:104,p100:17,c100:2,f100:3,fib100:0,serving:50,unit:'50g = 3-4 lonchas',v:'ok',note:'Procesado. Busca bajo en sodio.'},
+  huevo_f:{n:'Huevo Entero',cat:'proteina',cal100:155,p100:13,c100:1.1,f100:11,fib100:0,serving:50,unit:'50g = 1 huevo',v:'ok',note:'Proteina completa. 1 huevo=72 cal.'},
+  clara_huevo:{n:'Clara de Huevo',cat:'proteina',cal100:52,p100:11,c100:0.7,f100:0.2,fib100:0,serving:33,unit:'33g = 1 clara',v:'ok',note:'Pura proteina sin grasa.'},
+  yogurt_griego_f:{n:'Yogurt Griego natural',cat:'proteina',cal100:97,p100:10,c100:4,f100:5,fib100:0,serving:150,unit:'150g = 1 envase',v:'ok',note:'Busca sin azucar. Excelente snack.'},
+  yogurt_griego_0:{n:'Yogurt Griego 0%',cat:'proteina',cal100:59,p100:10,c100:4,f100:0.4,fib100:0,serving:150,unit:'150g',v:'ok',note:'Aun mejor: proteina sin grasa.'},
+  queso_fresco:{n:'Queso Fresco',cat:'proteina',cal100:264,p100:17,c100:3,f100:21,fib100:0,serving:30,unit:'30g = 1 loncha',v:'warn',note:'Moderacion. 30g basta.'},
+  queso_mozzarella:{n:'Queso Mozzarella',cat:'proteina',cal100:280,p100:22,c100:2,f100:22,fib100:0,serving:30,unit:'30g',v:'warn',note:'Mucha grasa. Usa con moderacion.'},
+  requeson:{n:'Requeson (cottage cheese)',cat:'proteina',cal100:98,p100:11,c100:3.4,f100:4.3,fib100:0,serving:100,unit:'100g',v:'ok',note:'Excelente snack alto en proteina.'},
+  leche_entera:{n:'Leche Entera',cat:'proteina',cal100:61,p100:3.2,c100:4.8,f100:3.3,fib100:0,serving:240,unit:'240ml = 1 vaso',v:'ok',note:'Buena fuente de proteina y calcio.'},
+  leche_descremada:{n:'Leche Descremada',cat:'proteina',cal100:34,p100:3.4,c100:5,f100:0.1,fib100:0,serving:240,unit:'240ml',v:'ok',note:'Misma proteina sin grasa.'},
+  leche_almendras:{n:'Leche de Almendras',cat:'bebida',cal100:15,p100:0.6,c100:0.6,f100:1.2,fib100:0.3,serving:240,unit:'240ml',v:'ok',note:'Muy baja cal. Busca sin azucar.'},
+  proteina_polvo:{n:'Proteina Whey (polvo)',cat:'proteina',cal100:400,p100:80,c100:8,f100:6,fib100:0,serving:30,unit:'30g = 1 scoop',v:'ok',note:'1 scoop = ~25g proteina.'},
+
+  // CARBOHIDRATOS
+  arroz_blanco:{n:'Arroz Blanco cocido',cat:'carbo',cal100:130,p100:2.7,c100:28,f100:0.3,fib100:0.4,serving:150,unit:'150g = 1 taza',v:'ok',note:'Base de tu almuerzo. 1 taza = 200 cal.'},
+  arroz_integral:{n:'Arroz Integral cocido',cat:'carbo',cal100:112,p100:2.6,c100:23,f100:0.9,fib100:1.8,serving:150,unit:'150g = 1 taza',v:'ok',note:'Mas fibra, mas saciante.'},
+  pan_integral:{n:'Pan Integral',cat:'carbo',cal100:247,p100:13,c100:41,f100:3.4,fib100:7,serving:30,unit:'30g = 1 rebanada',v:'ok',note:'Mejor opcion de pan.'},
+  pan_blanco:{n:'Pan Blanco',cat:'carbo',cal100:265,p100:9,c100:49,f100:3.2,fib100:2.7,serving:30,unit:'30g = 1 rebanada',v:'warn',note:'Preferir integral.'},
+  pasta_cocida:{n:'Pasta cocida',cat:'carbo',cal100:158,p100:5.8,c100:31,f100:0.9,fib100:1.8,serving:150,unit:'150g = 1 taza',v:'warn',note:'No esta en tu plan. Alto en carbs.'},
+  tortilla_maiz:{n:'Tortilla de Maiz',cat:'carbo',cal100:218,p100:5.7,c100:45,f100:2.9,fib100:6.3,serving:30,unit:'30g = 1 tortilla',v:'ok',note:'1 tortilla ~75 cal. Parte del plan.'},
+  arepa_f:{n:'Arepa',cat:'carbo',cal100:215,p100:4.5,c100:44,f100:2.5,fib100:4,serving:70,unit:'70g = 1 arepa',v:'ok',note:'1 arepa ~150 cal. Sin mantequilla.'},
+  avena_cocida:{n:'Avena cocida',cat:'carbo',cal100:71,p100:2.5,c100:12,f100:1.5,fib100:1.7,serving:200,unit:'200g = 1 taza',v:'ok',note:'Buena fibra, desayuno ideal.'},
+  avena_cruda:{n:'Avena (hojuelas crudas)',cat:'carbo',cal100:389,p100:17,c100:66,f100:7,fib100:10,serving:40,unit:'40g = 1/2 taza',v:'ok',note:'Antes de cocinar. 40g = 150 cal.'},
+  quinoa_cocida:{n:'Quinoa cocida',cat:'carbo',cal100:120,p100:4.4,c100:21,f100:1.9,fib100:2.8,serving:150,unit:'150g = 1 taza',v:'ok',note:'Pseudocereal, proteina + fibra.'},
+  papa_cocida:{n:'Papa cocida',cat:'carbo',cal100:87,p100:1.9,c100:20,f100:0.1,fib100:1.8,serving:150,unit:'150g = 1 mediana',v:'ok',note:'Saciante. Sin fritar.'},
+  camote:{n:'Camote (batata)',cat:'carbo',cal100:86,p100:1.6,c100:20,f100:0.1,fib100:3,serving:150,unit:'150g = 1 mediano',v:'ok',note:'Mas fibra que la papa. Excelente.'},
+  yuca_cocida:{n:'Yuca cocida',cat:'carbo',cal100:160,p100:1.4,c100:38,f100:0.3,fib100:1.8,serving:150,unit:'150g',v:'warn',note:'Carbo denso. Porcion moderada.'},
+  platano_maduro:{n:'Platano Maduro cocido',cat:'carbo',cal100:122,p100:1.3,c100:32,f100:0.4,fib100:2.3,serving:100,unit:'100g = 1/2 platano',v:'warn',note:'Dulce. Porcion chica.'},
+  lentejas_cocidas:{n:'Lentejas cocidas',cat:'carbo',cal100:116,p100:9,c100:20,f100:0.4,fib100:7.9,serving:200,unit:'200g = 1 taza',v:'ok',note:'Proteina + fibra. Excelente.'},
+  frijoles:{n:'Frijoles cocidos',cat:'carbo',cal100:127,p100:8.7,c100:23,f100:0.5,fib100:6.4,serving:200,unit:'200g = 1 taza',v:'ok',note:'Carbo + proteina + fibra.'},
+  garbanzos:{n:'Garbanzos cocidos',cat:'carbo',cal100:164,p100:8.9,c100:27,f100:2.6,fib100:7.6,serving:150,unit:'150g = 1 taza',v:'ok',note:'Versatil, alto en fibra.'},
+
+  // VEGETALES
+  brocoli:{n:'Brocoli',cat:'vegetal',cal100:34,p100:2.8,c100:7,f100:0.4,fib100:2.6,serving:100,unit:'100g = 1 taza',v:'ok',note:'Gratis calorico, lleno de fibra.'},
+  espinaca:{n:'Espinaca',cat:'vegetal',cal100:23,p100:2.9,c100:3.6,f100:0.4,fib100:2.2,serving:50,unit:'50g = 1 taza',v:'ok',note:'Hierro y fibra. Comela cruda o cocida.'},
+  lechuga:{n:'Lechuga',cat:'vegetal',cal100:15,p100:1.4,c100:2.9,f100:0.2,fib100:1.3,serving:50,unit:'50g = 1 taza',v:'ok',note:'Base de ensaladas.'},
+  zanahoria:{n:'Zanahoria',cat:'vegetal',cal100:41,p100:0.9,c100:10,f100:0.2,fib100:2.8,serving:80,unit:'80g = 1 mediana',v:'ok',note:'Crunchy y dulce natural.'},
+  tomate:{n:'Tomate',cat:'vegetal',cal100:18,p100:0.9,c100:3.9,f100:0.2,fib100:1.2,serving:100,unit:'100g = 1 mediano',v:'ok',note:'Licopeno, antioxidante.'},
+  pepino:{n:'Pepino',cat:'vegetal',cal100:15,p100:0.7,c100:3.6,f100:0.1,fib100:0.5,serving:100,unit:'100g = 1/2 pepino',v:'ok',note:'Hidratante, casi cero cal.'},
+  pimenton:{n:'Pimenton',cat:'vegetal',cal100:31,p100:1,c100:6,f100:0.3,fib100:2.1,serving:100,unit:'100g = 1 mediano',v:'ok',note:'Vitamina C altisima.'},
+  cebolla:{n:'Cebolla',cat:'vegetal',cal100:40,p100:1.1,c100:9,f100:0.1,fib100:1.7,serving:50,unit:'50g = 1/2 cebolla',v:'ok',note:'Da sabor y antioxidantes.'},
+  calabacin:{n:'Calabacin (zucchini)',cat:'vegetal',cal100:17,p100:1.2,c100:3.1,f100:0.3,fib100:1,serving:100,unit:'100g',v:'ok',note:'Muy bajo en cal, versatil.'},
+  coliflor:{n:'Coliflor',cat:'vegetal',cal100:25,p100:1.9,c100:5,f100:0.3,fib100:2,serving:100,unit:'100g = 1 taza',v:'ok',note:'Saciante y bajo en cal.'},
+  apio:{n:'Apio',cat:'vegetal',cal100:16,p100:0.7,c100:3,f100:0.2,fib100:1.6,serving:50,unit:'50g = 1 tallo',v:'ok',note:'Casi cero cal, buen snack.'},
+
+  // FRUTAS
+  manzana_f:{n:'Manzana',cat:'fruta',cal100:52,p100:0.3,c100:14,f100:0.2,fib100:2.4,serving:180,unit:'180g = 1 mediana',v:'ok',note:'Perfecto snack. ~95 cal.'},
+  banana_f:{n:'Banana (platano de seda)',cat:'fruta',cal100:89,p100:1.1,c100:23,f100:0.3,fib100:2.6,serving:120,unit:'120g = 1 mediana',v:'ok',note:'Energia rapida, buen pre-entreno.'},
+  naranja_f:{n:'Naranja',cat:'fruta',cal100:47,p100:0.9,c100:12,f100:0.1,fib100:2.4,serving:130,unit:'130g = 1 mediana',v:'ok',note:'Vitamina C. Comela, no en jugo.'},
+  pera_f:{n:'Pera',cat:'fruta',cal100:57,p100:0.4,c100:15,f100:0.1,fib100:3.1,serving:180,unit:'180g = 1 mediana',v:'ok',note:'Alta fibra, saciante.'},
+  fresa:{n:'Fresas',cat:'fruta',cal100:32,p100:0.7,c100:7.7,f100:0.3,fib100:2,serving:150,unit:'150g = 1 taza',v:'ok',note:'Baja cal, antioxidantes.'},
+  pina:{n:'Pina',cat:'fruta',cal100:50,p100:0.5,c100:13,f100:0.1,fib100:1.4,serving:150,unit:'150g = 1 taza',v:'ok',note:'Enzima digestiva. Buena post-comida.'},
+  mango:{n:'Mango',cat:'fruta',cal100:60,p100:0.8,c100:15,f100:0.4,fib100:1.6,serving:150,unit:'150g = 1 taza',v:'ok',note:'Dulce natural. Moderacion.'},
+  uvas:{n:'Uvas',cat:'fruta',cal100:69,p100:0.7,c100:18,f100:0.2,fib100:0.9,serving:100,unit:'100g = 1 puno',v:'warn',note:'Muy dulces. Porcion chica.'},
+  sandia:{n:'Sandia',cat:'fruta',cal100:30,p100:0.6,c100:7.6,f100:0.2,fib100:0.4,serving:200,unit:'200g = 1 tajada',v:'ok',note:'Hidratante, baja cal.'},
+  melon:{n:'Melon',cat:'fruta',cal100:34,p100:0.8,c100:8,f100:0.2,fib100:0.9,serving:150,unit:'150g',v:'ok',note:'Refrescante, bajo en cal.'},
+  arandanos:{n:'Arandanos (blueberries)',cat:'fruta',cal100:57,p100:0.7,c100:14,f100:0.3,fib100:2.4,serving:100,unit:'100g = 1 taza',v:'ok',note:'Antioxidantes top.'},
+
+  // GRASAS
+  almendras_f:{n:'Almendras',cat:'grasa',cal100:579,p100:21,c100:22,f100:50,fib100:12,serving:15,unit:'15g = 10-12 almendras',v:'ok',note:'10 almendras ~70 cal. Controla porcion.'},
+  nueces:{n:'Nueces',cat:'grasa',cal100:654,p100:15,c100:14,f100:65,fib100:6.7,serving:20,unit:'20g = puno pequeno',v:'ok',note:'Omega 3. Porcion justa.'},
+  mani_f:{n:'Mani (cacahuate)',cat:'grasa',cal100:567,p100:26,c100:16,f100:49,fib100:8.5,serving:20,unit:'20g = puno pequeno',v:'ok',note:'Alto en grasa. Moderacion.'},
+  mantequilla_mani_f:{n:'Mantequilla de Mani',cat:'grasa',cal100:588,p100:25,c100:20,f100:50,fib100:6,serving:16,unit:'16g = 1 cda',v:'ok',note:'1 cda ~95 cal. Max 1-2 cdas/dia.'},
+  aguacate_f:{n:'Aguacate',cat:'grasa',cal100:160,p100:2,c100:9,f100:15,fib100:6.7,serving:100,unit:'100g = 1/2 aguacate',v:'ok',note:'Grasa buena. Max medio al dia.'},
+  aceite_oliva:{n:'Aceite de Oliva',cat:'grasa',cal100:884,p100:0,c100:0,f100:100,fib100:0,serving:14,unit:'14g = 1 cda',v:'ok',note:'1 cda ~120 cal. Para cocinar y ensaladas.'},
+  aceite_coco:{n:'Aceite de Coco',cat:'grasa',cal100:862,p100:0,c100:0,f100:100,fib100:0,serving:14,unit:'14g = 1 cda',v:'warn',note:'Saturada. Uso moderado.'},
+  semillas_chia:{n:'Semillas de Chia',cat:'grasa',cal100:486,p100:17,c100:42,f100:31,fib100:34,serving:12,unit:'12g = 1 cda',v:'ok',note:'Omega 3 + fibra. 1 cda basta.'},
+  semillas_linaza:{n:'Linaza molida',cat:'grasa',cal100:534,p100:18,c100:29,f100:42,fib100:27,serving:10,unit:'10g = 1 cda',v:'ok',note:'Omega 3. Muele para absorcion.'},
+
+  // SNACKS / OTROS
+  barra_proteina:{n:'Barra de Proteina',cat:'snack',cal100:400,p100:30,c100:40,f100:12,fib100:6,serving:60,unit:'60g = 1 barra',v:'warn',note:'OK post-gym. Revisa azucar.'},
+  galletas_saladas:{n:'Galletas Saladas',cat:'snack',cal100:420,p100:9,c100:73,f100:10,fib100:3,serving:30,unit:'30g = ~6 galletas',v:'warn',note:'Procesado. Ocasional.'},
+  chocolate_70:{n:'Chocolate 70% cacao',cat:'snack',cal100:546,p100:7.8,c100:45,f100:31,fib100:10,serving:20,unit:'20g = 2 cuadritos',v:'ok',note:'Antioxidante. Max 20g/dia.'},
+  chocolate_leche:{n:'Chocolate con Leche',cat:'snack',cal100:535,p100:7.6,c100:59,f100:30,fib100:3,serving:30,unit:'30g',v:'bad',note:'Mucha azucar. Prefiere 70%+.'},
+  helado_f:{n:'Helado',cat:'snack',cal100:207,p100:3.5,c100:24,f100:11,fib100:0.7,serving:80,unit:'80g = 1 bola',v:'warn',note:'Cheat semanal, 1 bola.'},
+  miel:{n:'Miel',cat:'snack',cal100:304,p100:0.3,c100:82,f100:0,fib100:0.2,serving:20,unit:'20g = 1 cda',v:'warn',note:'Azucar natural. Poca cantidad.'},
+  stevia:{n:'Stevia',cat:'snack',cal100:0,p100:0,c100:0,f100:0,fib100:0,serving:1,unit:'1g = 1 sobre',v:'ok',note:'Endulzante cero cal. Perfecto.'},
+
+  // BEBIDAS
+  agua_f:{n:'Agua',cat:'bebida',cal100:0,p100:0,c100:0,f100:0,fib100:0,serving:250,unit:'250ml = 1 vaso',v:'ok',note:'Lo mejor. Meta: 4L diarios.'},
+  cafe_negro_f:{n:'Cafe negro',cat:'bebida',cal100:2,p100:0.1,c100:0,f100:0,fib100:0,serving:240,unit:'240ml = 1 taza',v:'ok',note:'Sin azucar. Cafeina = energia.'},
+  te_verde:{n:'Te Verde',cat:'bebida',cal100:1,p100:0,c100:0,f100:0,fib100:0,serving:240,unit:'240ml',v:'ok',note:'Antioxidantes. Cero cal.'}
+};
+
+// Expand primary FOOD with per-serving legacy fields derived from macros
+(function mergeFoodExt(){
+  for(const[k,v]of Object.entries(FOOD_EXT)){
+    const srv=v.serving||100,f=srv/100;
+    FOOD[k]={
+      n:v.n,
+      c:Math.round(v.cal100*f),
+      p:Math.round(v.p100*f*10)/10,
+      cb:Math.round(v.c100*f*10)/10,
+      f:Math.round(v.f100*f*10)/10,
+      v:v.v,
+      note:v.note,
+      cat:v.cat,
+      cal100:v.cal100,p100:v.p100,c100:v.c100,f100:v.f100,fib100:v.fib100||0,
+      serving:srv,unit:v.unit
+    };
+  }
+  // Also enrich existing FOOD entries (pollo, huevo, etc) with cat + macros100
+  const enrich={
+    pollo:{cat:'proteina',cal100:165,p100:31,c100:0,f100:3.6,fib100:0,serving:150,unit:'150g = 1 pechuga'},
+    carne:{cat:'proteina',cal100:226,p100:24,c100:0,f100:13,fib100:0,serving:150,unit:'150g'},
+    salmon:{cat:'proteina',cal100:208,p100:22,c100:0,f100:13,fib100:0,serving:150,unit:'150g'},
+    atun:{cat:'proteina',cal100:116,p100:26,c100:0,f100:1,fib100:0,serving:100,unit:'100g = 1 lata'},
+    huevo:{cat:'proteina',cal100:155,p100:13,c100:1.1,f100:11,fib100:0,serving:50,unit:'50g = 1 huevo'},
+    yogurt:{cat:'proteina',cal100:80,p100:10,c100:5,f100:2.7,fib100:0,serving:150,unit:'150g'},
+    'yogurt griego':{cat:'proteina',cal100:80,p100:10,c100:5,f100:2.7,fib100:0,serving:150,unit:'150g'},
+    arroz:{cat:'carbo',cal100:130,p100:2.7,c100:28,f100:0.3,fib100:0.4,serving:150,unit:'150g = 1 taza'},
+    pan:{cat:'carbo',cal100:265,p100:9,c100:49,f100:3.2,fib100:2.7,serving:60,unit:'60g = 2 rebanadas'},
+    pasta:{cat:'carbo',cal100:158,p100:5.8,c100:31,f100:0.9,fib100:1.8,serving:150,unit:'150g'},
+    lentejas:{cat:'carbo',cal100:116,p100:9,c100:20,f100:0.4,fib100:7.9,serving:200,unit:'200g'},
+    avena:{cat:'carbo',cal100:389,p100:17,c100:66,f100:7,fib100:10,serving:40,unit:'40g'},
+    arepa:{cat:'carbo',cal100:215,p100:4.5,c100:44,f100:2.5,fib100:4,serving:70,unit:'70g'},
+    tortilla:{cat:'carbo',cal100:218,p100:5.7,c100:45,f100:2.9,fib100:6.3,serving:30,unit:'30g'},
+    platano:{cat:'fruta',cal100:89,p100:1.1,c100:23,f100:0.3,fib100:2.6,serving:120,unit:'120g'},
+    manzana:{cat:'fruta',cal100:52,p100:0.3,c100:14,f100:0.2,fib100:2.4,serving:180,unit:'180g'},
+    banana:{cat:'fruta',cal100:89,p100:1.1,c100:23,f100:0.3,fib100:2.6,serving:120,unit:'120g'},
+    pera:{cat:'fruta',cal100:57,p100:0.4,c100:15,f100:0.1,fib100:3.1,serving:180,unit:'180g'},
+    naranja:{cat:'fruta',cal100:47,p100:0.9,c100:12,f100:0.1,fib100:2.4,serving:130,unit:'130g'},
+    almendras:{cat:'grasa',cal100:579,p100:21,c100:22,f100:50,fib100:12,serving:15,unit:'15g = 10-12 almendras'},
+    aguacate:{cat:'grasa',cal100:160,p100:2,c100:9,f100:15,fib100:6.7,serving:100,unit:'100g = 1/2'},
+    queso:{cat:'proteina',cal100:367,p100:23,c100:3,f100:30,fib100:0,serving:30,unit:'30g'},
+    'mantequilla mani':{cat:'grasa',cal100:588,p100:25,c100:20,f100:50,fib100:6,serving:16,unit:'16g = 1 cda'},
+    'proteina whey':{cat:'proteina',cal100:400,p100:80,c100:8,f100:6,fib100:0,serving:30,unit:'30g = 1 scoop'},
+    agua:{cat:'bebida',cal100:0,p100:0,c100:0,f100:0,fib100:0,serving:250,unit:'250ml'},
+    'cafe negro':{cat:'bebida',cal100:2,p100:0.1,c100:0,f100:0,fib100:0,serving:240,unit:'240ml'}
+  };
+  for(const[k,ext]of Object.entries(enrich))if(FOOD[k])Object.assign(FOOD[k],ext);
+})();
+
 function searchFood(q){
   q=q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   let r=[];
@@ -164,6 +429,32 @@ function searchFood(q){
   }
   if(!r.length){const ws=q.split(' ');for(const[k,v]of Object.entries(FOOD)){const nm=v.n.toLowerCase();if(ws.some(w=>w.length>2&&(nm.includes(w)||k.includes(w))))r.push({k,...v});}}
   return r;
+}
+
+// Food utility: compute macros for a given foodKey + grams
+function foodMacros(foodKey,grams){
+  const f=FOOD[foodKey];
+  if(!f)return{cal:0,p:0,c:0,fat:0,fib:0};
+  // If food has per-100g macros use them; else scale per-serving legacy fields.
+  if(typeof f.cal100==='number'){
+    const g=grams/100;
+    return{
+      cal:Math.round(f.cal100*g),
+      p:Math.round(f.p100*g*10)/10,
+      c:Math.round(f.c100*g*10)/10,
+      fat:Math.round(f.f100*g*10)/10,
+      fib:Math.round((f.fib100||0)*g*10)/10
+    };
+  }
+  // Legacy: f.c is per default serving; assume 100g baseline
+  const srv=f.serving||100,sc=grams/srv;
+  return{
+    cal:Math.round((f.c||0)*sc),
+    p:Math.round((f.p||0)*sc*10)/10,
+    c:Math.round((f.cb||0)*sc*10)/10,
+    fat:Math.round((f.f||0)*sc*10)/10,
+    fib:0
+  };
 }
 
 // ===== SUPPLEMENTS =====

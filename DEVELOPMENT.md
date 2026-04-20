@@ -1,18 +1,73 @@
 # Plan de Desarrollo - Libra Fit Assistant
 
 > Documento vivo. Se actualiza con cada cambio en el proyecto.
-> Ultima actualizacion: 2026-04-13
+> Ultima actualizacion: 2026-04-19
 
 ---
 
-## Estado Actual: v1.2.0 - LIVE EN PRODUCCION
+## Estado Actual: v1.3.0 - LIVE EN PRODUCCION
 
 **URL:** https://libra-fit-app.onrender.com
+**Admin:** https://libra-fit-app.onrender.com/admin.html
 **Deploy:** Render.com Free Tier (auto-deploy desde GitHub master)
 
 ---
 
 ## Historial de Versiones (Changelog)
+
+### v1.3.0 (2026-04-19) - Config Personalizada + Error Reporting
+
+#### Problema resuelto:
+La app antes solo servia para el plan de comidas/ejercicios de Ricardo.
+Ahora cada usuario puede configurar sus propias comidas, rutinas, horarios, etc.
+
+#### Funcionalidades entregadas:
+- [x] **FOOD database expandida:** ~60 alimentos en espanol con macros completos por 100g
+- [x] **UserMeals system:** Configuracion de comidas personalizada por usuario con template default
+- [x] **Editor de comidas:** UI en Perfil para crear/editar comidas con hora, dias de semana, alimentos y gramos
+- [x] **Live swap de comidas:** Boton "🔄 Cambiar" en cada comida para cambiar lo que se comio en tiempo real
+- [x] **Tracking de macros completo:** Protein, carbs, grasas, fibra con barras de progreso en Hoy
+- [x] **Targets automaticos:** Protein target = peso_kg * 1.8, fat 28%, carbs resto
+- [x] **UserRoutines system:** Rutinas personalizadas + 6 templates default (push/pull/legs/upper/lower/full)
+- [x] **EX database expandida:** +27 ejercicios nuevos (pecho, espalda, hombro, brazos, piernas, gluteos, core)
+- [x] **Editor de rutinas:** UI en Gym tab para crear/editar con sets/reps/rest por ejercicio
+- [x] **Horario semanal:** Usuario asigna rutinas a dias de la semana
+- [x] **Cardio config:** Dias + tipo (escaladora/caminar/trotar) + duracion
+- [x] **LogBuffer (errorReport.js):** Ring buffer 200 entradas captura console.log/warn/error + uncaught errors
+- [x] **Reporte de errores:** Boton "🐞 Reportar un error" en Perfil, envia logs + device + URL al server
+- [x] **Server endpoint /api/errors:** Guarda max 500 reportes FIFO en DB encriptada
+- [x] **Admin panel errores:** Tab "Reportes de errores" en admin.html con filtro, view logs, delete
+- [x] **Notificaciones gated:** Notif.init/send/check retornan early si !Auth.isLoggedIn()
+- [x] **Libra chat ampliado:** Nuevos intents ask_protein, ask_macros, suggest_protein, plan_meal_food
+- [x] **Backward compatibility:** Todo funciona con plan legacy de Ricardo si no hay config custom
+
+#### Archivos nuevos:
+- `meals.js` - UserMeals module completo
+- `routines.js` - UserRoutines module completo
+- `errorReport.js` - LogBuffer + ErrorReporter + UI modal
+- `server/routes/errors.js` - endpoints POST/GET/DELETE errores
+- `RESEARCH.md` - Investigacion de mercado (MyFitnessPal, Cronometer, Strong, Hevy, Noom, etc.)
+
+#### Archivos modificados:
+- `data.js` - FOOD DB expandida (60+ alimentos con macros), EX DB (+27 ejercicios)
+- `engine.js` - todayCal delega a UserMeals, todayMacros(), macroTargets(), Notif gated por auth
+- `app.js` - Config UIs de comidas y rutinas, editor modals, swap modal, macros bars, boton reportar error
+- `libra.js` - +4 intents de macros, parseo de "voy a desayunar Xg de Y"
+- `server/index.js` - mount /api/errors
+- `server/routes/admin.js` - endpoints de errores para admin panel
+- `admin.html` - tab "Reportes de errores"
+- `index.html` - scripts de meals.js, routines.js, errorReport.js; Notif.init post-login
+
+#### Decisiones tecnicas:
+- **FOOD macros por 100g** (estandar USDA) vs por serving - permite calcular cualquier cantidad exacta
+- **UserMeals.getMealForToday** routing entre custom y legacy para backward compat perfecto
+- **LogBuffer wrap** de console mantiene funcionalidad original (delegacion a console.* nativo)
+- **Error reports dentro del DB encriptado** - no archivo aparte, todo en AES-256-CBC
+- **Notif init post-login** - permiso de browser solo se pide cuando el usuario esta loggeado
+- **Templates de rutinas** - 6 populares (push/pull/legs etc) para onboarding rapido
+- **Ingested research insights:** USDA + Open Food Facts fallback recomendado para futuro, Groq AI para v1.4
+
+---
 
 ### v1.2.0 (2026-04-19) - Onboarding, Admin, UX Polish
 

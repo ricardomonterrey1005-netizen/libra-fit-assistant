@@ -7,7 +7,7 @@
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant
-**Version:** 1.2.0
+**Version:** 1.3.0
 **Tipo:** PWA (Progressive Web App) - Coach de fitness con IA
 **Usuario:** Ricardo Monterrey (Panama)
 **Idioma UI:** Espanol (todo en espanol, sin excepciones)
@@ -39,12 +39,16 @@ FitRicardo/
   index.html        - HTML principal (SPA, 5 paginas)
   admin.html        - Panel de administracion (password-protected)
   SECURITY.md       - Documentacion completa de seguridad
+  RESEARCH.md       - Investigacion de mercado fitness apps (v1.3.0)
   styles.css         - Estilos completos (dark theme, responsive)
-  data.js            - Datos estaticos: comidas, ejercicios, horarios
-  engine.js          - Motor principal: storage, helpers, calorias, rachas/XP
-  libra.js           - Asistente IA (NLP en espanol, intents, ejecutor)
+  data.js            - Datos estaticos: comidas, ejercicios, horarios, FOOD DB con macros
+  engine.js          - Motor principal: storage, helpers, calorias, rachas/XP, macros
+  libra.js           - Asistente IA (NLP en espanol, intents, FAQ)
   app.js             - UI, navegacion, renderizado de paginas
   api.js             - Cliente API, Auth, Sync con servidor
+  meals.js           - UserMeals: config de comidas personalizada (v1.3.0)
+  routines.js        - UserRoutines: config de rutinas personalizada (v1.3.0)
+  errorReport.js     - LogBuffer + ErrorReporter (v1.3.0)
   sw.js              - Service Worker para PWA offline
   manifest.json      - Manifest PWA (nombre, iconos, colores)
   render.yaml        - Config de deployment para Render.com
@@ -59,6 +63,7 @@ FitRicardo/
       data.js        - CRUD datos por usuario
       audit.js       - Audit log del usuario
       admin.js       - Endpoints admin (v1.2.0)
+      errors.js      - Reporte de errores (v1.3.0)
     node_modules/    - (no se sube a git)
   icons/             - Iconos PWA
   .claude/
@@ -161,6 +166,64 @@ FitRicardo/
 | Nuevo usuario veia datos de Ricardo | RESUELTO (v1.2.0) | Defaults vacios en getProfile/getGoals, registro servidor con name='' y targetDate=null |
 | Countdown usaba fecha hardcoded 2026-05-10 | RESUELTO (v1.2.0) | Solo muestra si hay goals.targetDate, label dinamico |
 | Chat Libra respondia "no entendi" mucho | RESUELTO (v1.2.0) | Nuevos intents + FAQ + fallback con sugerencias |
+| App solo servia para plan de Ricardo | RESUELTO (v1.3.0) | UserMeals/UserRoutines permiten config personalizada por usuario |
+| Notificaciones sin auth | RESUELTO (v1.3.0) | Notif gated por Auth.isLoggedIn() |
+| Sin reporte de errores | RESUELTO (v1.3.0) | LogBuffer + boton en Perfil + admin panel |
+
+## Novedades v1.3.0 (CONFIG PERSONALIZADA + ERROR REPORTING)
+
+### Sistema de Comidas Personalizado (meals.js)
+- **FOOD database expandida:** ~60 alimentos en espanol con macros por 100g
+  (cal100, p100, c100, f100, fib100), categoria, serving tipico, nota
+- **UserMeals.getUserMeals()** - devuelve template del usuario desde `S.g('userMeals', DEFAULT_TEMPLATE)`
+- **UserMeals.saveUserMeals(meals)** - guarda config personalizada
+- **UserMeals.calcMealMacros(meal)** - suma calorias + macros de foods[].grams
+- **UserMeals.calcDayMacros(dow, st)** - total del dia
+- **UserMeals.calcTargets()** - calcula targets: protein=peso_kg*1.8, fat=28%cal, carbs=resto
+- **UserMeals.swapFood(mealId, idx, newFoodKey, newGrams)** - cambio en tiempo real
+- **UserMeals.logActualEaten(mealId, foods)** - registra lo que realmente se comio
+- **getMealForToday(id, dow)** - helper global que elige custom o legacy
+- Backward compat: si no hay custom, usa legacy MEALS
+- UI: "⚙️ Configurar comidas" en Perfil, editor con hora/dias/foods/macros preview
+- Swap en tiempo real: boton "🔄 Cambiar" en cada comida
+
+### Sistema de Rutinas Personalizado (routines.js)
+- **EX database expandida:** +27 ejercicios nuevos (pecho, espalda, hombro, brazos, piernas, gluteos, core)
+- **UserRoutines.getUserRoutines()** - rutinas del usuario desde `S.g('userRoutines', DEFAULT_ROUTINES)`
+- **UserRoutines.getWeekSchedule()** - horario semanal {0-6: routineId|null}
+- **UserRoutines.getCardioConfig()** - dias + tipo + duracion de cardio
+- **UserRoutines.getTodayRoutine()** - rutina de hoy
+- **UserRoutines.DEFAULT_ROUTINES** - 6 templates: push, pull, legs, upper, lower, full body
+- **getEffectiveRoutine()** - helper global con fallback a RUT_A/RUT_B legacy
+- **isEffectiveCardioDay()** - helper global con fallback a SCHED legacy
+- UI: "⚙️ Configurar" en Gym tab, lista rutinas + editor sets/reps/rest + horario 7 dias + cardio config
+
+### Sistema de Reporte de Errores (errorReport.js + server/routes/errors.js)
+- **LogBuffer** - ring buffer 200 entradas, wrap de console.log/warn/error/info/debug
+- **Global handlers:** window.onerror + unhandledrejection
+- **ErrorReporter.send(description)** - POST /api/errors/report con logs + device + url
+- **POST /api/errors/report** - guarda en `db.data._errorReports` (max 500 FIFO)
+- **GET /api/errors?password=X** - admin only, lista reportes
+- **DELETE /api/errors/:id** y **DELETE /api/errors** - admin cleanup
+- UI: boton "🐞 Reportar un error" en Perfil
+- Admin: tab "Reportes de errores" en /admin.html con filtro, view, delete, clear-all
+
+### Notificaciones gated por Auth
+- `Notif.init()`, `Notif.send()`, `Notif.check()` retornan early si `!Auth.isLoggedIn()`
+- Permiso solo se pide post-login (desde authUI.showApp)
+- Guest/offline mode NO recibe notificaciones
+
+### Macros tracking
+- `engine.js` todayCal() delega a UserMeals cuando hay custom template
+- `todayMacros(st, dow)` - total cal, protein, carbs, fat, fiber del dia
+- `macroTargets()` - targets calculados segun peso
+- UI Hoy: barras de progreso para protein, carbs, grasas, fibra
+
+### Libra chat ampliado
+- `ask_protein` - "cuanta proteina llevo", "me falta proteina"
+- `ask_macros` - "mis macros"
+- `suggest_protein` - "que debo comer para completar mi proteina"
+- `plan_meal_food` - "voy a desayunar 200g de salmon" → parse + log con macros
 
 ## Novedades v1.2.0
 

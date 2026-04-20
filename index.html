@@ -173,9 +173,12 @@
   </nav>
 </div>
 
+<script src="errorReport.js"></script>
 <script src="api.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
+<script src="meals.js"></script>
+<script src="routines.js"></script>
 <script src="libra.js"></script>
 <script src="app.js"></script>
 <script>
@@ -372,6 +375,8 @@ const authUI = {
     document.getElementById('authScreen').classList.add('hide');
     document.getElementById('appShell').classList.remove('hide');
     App.init();
+    // Pedir permiso de notificaciones solo ahora que hay sesion (o guest activo)
+    if (typeof Notif !== 'undefined' && Notif.init) Notif.init();
   },
 
   showAuth() {

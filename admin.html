@@ -93,6 +93,22 @@
   </div>
 
   <div class="card">
+    <div class="sec-t">🐞 Reportes de errores</div>
+    <div class="row">
+      <input id="errFilter" placeholder="Filtrar por usuario o texto..." />
+      <button onclick="loadErrors()">Filtrar</button>
+      <button class="outline" onclick="refreshErrors()">🔄 Refrescar</button>
+      <button class="danger" onclick="clearErrors()">Borrar todos</button>
+    </div>
+    <div class="scroll">
+      <table id="errTable">
+        <thead><tr><th>Fecha</th><th>Usuario</th><th>Pagina</th><th>Descripcion</th><th>URL</th><th>Logs</th><th></th></tr></thead>
+        <tbody id="errBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
     <div class="sec-t">📋 Audit Log</div>
     <div class="row">
       <select id="filterAction">
@@ -137,6 +153,7 @@ async function login() {
     renderStats(d);
     renderUsers(d.users);
     loadAudit();
+    loadErrors();
   } catch (e) {
     $('err').textContent = 'Error de red';
   }
@@ -162,6 +179,95 @@ async function loadAll() {
   renderStats(d);
   renderUsers(d.users);
   loadAudit();
+  loadErrors();
+}
+
+// ===== ERROR REPORTS =====
+let ERRORS_CACHE = [];
+async function loadErrors() {
+  if (!ADMIN_PW) return;
+  try {
+    const r = await fetch('/api/errors?password=' + encodeURIComponent(ADMIN_PW) + '&limit=300');
+    if (!r.ok) return;
+    const d = await r.json();
+    ERRORS_CACHE = d.reports || [];
+    renderErrors();
+  } catch (e) {}
+}
+function refreshErrors() { loadErrors(); }
+function renderErrors() {
+  const filter = ($('errFilter').value || '').toLowerCase().trim();
+  let list = ERRORS_CACHE.slice();
+  if (filter) list = list.filter(r =>
+    ((r.username || '') + ' ' + (r.description || '') + ' ' + (r.url || '') + ' ' + (r.page || ''))
+      .toLowerCase().includes(filter));
+  const fmt = x => x ? new Date(x).toLocaleString('es') : '—';
+  $('errBody').innerHTML = list.map(r => `
+    <tr data-id="${r.id}">
+      <td>${fmt(r.createdAt)}</td>
+      <td>${r.username ? '<b>' + r.username + '</b>' : '<span class="tag warn">anon</span>'}</td>
+      <td>${r.page || '—'}</td>
+      <td style="max-width:240px;white-space:normal">${(r.description || '').slice(0,160) || '<i style="color:var(--t3)">(sin desc)</i>'}</td>
+      <td style="font-size:10px;color:var(--t3);max-width:140px;word-break:break-all">${r.url || '—'}</td>
+      <td><span class="tag">${(r.logs || []).length}</span></td>
+      <td>
+        <button class="outline" style="padding:4px 8px;font-size:11px" onclick="viewErr('${r.id}')">Ver</button>
+        <button class="danger" style="padding:4px 8px;font-size:11px" onclick="deleteErr('${r.id}')">✕</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--t3);padding:20px">No hay reportes</td></tr>';
+}
+function viewErr(id) {
+  const r = ERRORS_CACHE.find(x => x.id === id);
+  if (!r) return;
+  const fmtT = t => new Date(t).toLocaleTimeString('es') + '.' + (t % 1000);
+  const logs = (r.logs || []).map(l =>
+    `<div style="font-size:11px;padding:2px 6px;border-left:3px solid ${l.level==='error'||l.level==='uncaught'||l.level==='rejection'?'var(--red)':l.level==='warn'?'var(--yellow)':'var(--blue)'};margin:2px 0"><b>[${l.level}]</b> <span style="color:var(--t3)">${fmtT(l.t)}</span>: ${escapeHtml(l.msg)}</div>`
+  ).join('') || '<i style="color:var(--t3)">Sin logs</i>';
+  const meta = `
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12px;margin-bottom:10px">
+      <div style="color:var(--t2)">Fecha:</div><div>${new Date(r.createdAt).toLocaleString('es')}</div>
+      <div style="color:var(--t2)">Usuario:</div><div>${r.username || 'anon'} (${r.userId || '—'})</div>
+      <div style="color:var(--t2)">URL:</div><div style="word-break:break-all">${r.url || '—'}</div>
+      <div style="color:var(--t2)">Pagina:</div><div>${r.page || '—'}</div>
+      <div style="color:var(--t2)">User Agent:</div><div style="word-break:break-all">${r.userAgent || '—'}</div>
+      <div style="color:var(--t2)">Plataforma:</div><div>${r.platform || '—'} / ${r.language || '—'}</div>
+      <div style="color:var(--t2)">Pantalla:</div><div>${r.screen || '—'} / viewport ${r.viewport || '—'}</div>
+      <div style="color:var(--t2)">Online:</div><div>${r.online ? 'si' : 'no'}</div>
+      <div style="color:var(--t2)">IP:</div><div>${r.ip || '—'}</div>
+    </div>
+    <div style="margin:10px 0;padding:10px;background:var(--card2);border-radius:8px">
+      <div style="color:var(--t2);font-size:11px;margin-bottom:4px">Descripcion:</div>
+      <div style="white-space:pre-wrap">${escapeHtml(r.description || '(sin descripcion)')}</div>
+    </div>
+    <div style="color:var(--t2);font-size:11px;margin-bottom:4px">Logs (${(r.logs || []).length}):</div>
+    <div style="max-height:300px;overflow-y:auto;background:#000;padding:6px;border-radius:6px">${logs}</div>
+  `;
+  showErrModal(meta);
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function showErrModal(html) {
+  let m = document.getElementById('errModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'errModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;overflow-y:auto';
+    m.innerHTML = '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;max-width:800px;width:100%;max-height:90vh;overflow-y:auto"><div id="errModalBody"></div><button style="margin-top:10px;width:100%" onclick="document.getElementById(\'errModal\').remove()">Cerrar</button></div>';
+    document.body.appendChild(m);
+  }
+  m.querySelector('#errModalBody').innerHTML = html;
+}
+async function deleteErr(id) {
+  if (!confirm('Borrar este reporte?')) return;
+  await fetch('/api/errors/' + id + '?password=' + encodeURIComponent(ADMIN_PW), { method: 'DELETE' });
+  loadErrors();
+}
+async function clearErrors() {
+  if (!confirm('Borrar TODOS los reportes?')) return;
+  await fetch('/api/errors?password=' + encodeURIComponent(ADMIN_PW), { method: 'DELETE' });
+  loadErrors();
 }
 
 function fmtUptime(s) {

@@ -89,10 +89,49 @@ function saveMySups(s){S.s('mysups',s)}
 // ===== CALORIE ENGINE =====
 function calBudget(){const p=getProfile();return{target:p.bmr?Math.round(p.bmr*1.15):1900,min:1500,max:2200}}
 function todayCal(st,dow){
+  // Si hay plantilla custom, usar UserMeals
+  if(typeof UserMeals!=='undefined' && UserMeals.hasCustom()){
+    return UserMeals.calcDayMacros(dow,st).cal;
+  }
   let t=0;
   MEAL_ORDER.forEach(k=>{if(st.meals[k])t+=getMeal(k,dow).cal});
   (st.extras||[]).forEach(e=>{const c=Number(e.c);if(!isNaN(c))t+=c});
   return t;
+}
+// Macros totales del dia (cal, p, c, fat, fib)
+function todayMacros(st,dow){
+  st=st||getDay();
+  dow=dow??new Date().getDay();
+  if(typeof UserMeals!=='undefined' && UserMeals.hasCustom()){
+    return UserMeals.calcDayMacros(dow,st);
+  }
+  // Fallback legacy: estimar macros usando los p/cb/f del plan donde existen
+  const tot={cal:0,p:0,c:0,fat:0,fib:0};
+  MEAL_ORDER.forEach(k=>{
+    if(st.meals[k]){
+      const m=getMeal(k,dow);
+      tot.cal+=m.cal||0;
+      tot.p+=m.p||0;
+      // legacy no tiene carbs/fat por comida, se queda en 0
+    }
+  });
+  (st.extras||[]).forEach(e=>{
+    tot.cal+=Number(e.c)||0;
+    tot.p+=Number(e.p)||0;
+    tot.c+=Number(e.cb)||0;
+    tot.fat+=Number(e.f)||0;
+  });
+  tot.cal=Math.round(tot.cal);
+  tot.p=Math.round(tot.p*10)/10;
+  tot.c=Math.round(tot.c*10)/10;
+  tot.fat=Math.round(tot.fat*10)/10;
+  return tot;
+}
+// Metas de macros (proteina basada en 1.8g/kg peso corporal)
+function macroTargets(){
+  if(typeof UserMeals!=='undefined') return UserMeals.calcTargets();
+  const bud=calBudget();
+  return{cal:bud.target,p:140,c:220,fat:60,fib:30};
 }
 function canIEat(foodKey,st,dow){
   const f=FOOD[foodKey];if(!f)return null;
@@ -314,11 +353,24 @@ const Streaks={
 // ===== NOTIFICATIONS =====
 const Notif={
   ok:false,
-  async init(){if('Notification'in window){if(Notification.permission==='granted')this.ok=true;
-    else if(Notification.permission!=='denied'){this.ok=(await Notification.requestPermission())==='granted'}}},
-  send(t,b,tag='g'){if(!this.ok)return;try{new Notification(t,{body:b,tag,renotify:true})}catch(e){
-    navigator.serviceWorker?.ready?.then(r=>r.showNotification(t,{body:b,tag,renotify:true}))}},
+  _isLogged(){return typeof Auth!=='undefined'&&Auth.isLoggedIn&&Auth.isLoggedIn()},
+  async init(){
+    // No pedir permiso ni activar si no hay sesion
+    if(!this._isLogged())return;
+    if('Notification'in window){
+      if(Notification.permission==='granted')this.ok=true;
+      else if(Notification.permission!=='denied'){this.ok=(await Notification.requestPermission())==='granted'}
+    }
+  },
+  send(t,b,tag='g'){
+    if(!this._isLogged())return;
+    if(!this.ok)return;
+    try{new Notification(t,{body:b,tag,renotify:true})}catch(e){
+      navigator.serviceWorker?.ready?.then(r=>r.showNotification(t,{body:b,tag,renotify:true}))}
+  },
   check(){
+    // Early return si no hay sesion
+    if(!this._isLogged())return;
     const n=new Date(),h=n.getHours(),m=n.getMinutes(),t=h*60+m,set=getSettings(),st=getDay(),dow=n.getDay(),sch=SCHED[dow];
     const sent=k=>{const sk=`fr_n_${k}_${dk()}`;if(S.g(sk))return true;S.s(sk,true);return false};
     if(set.morning&&t>=360&&t<362&&!sent('am'))this.send('Buenos dias! ☀️',Engine.briefing()[1]);
