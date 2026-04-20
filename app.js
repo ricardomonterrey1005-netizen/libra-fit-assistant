@@ -337,6 +337,46 @@ const App={
       <div class="streak-mot">${Streaks.getMotivation()}</div>
     </div>`;
 
+    // ===== LIBRA COACH (v2.0 - desbloqueable a 7 dias de mejor racha) =====
+    if(typeof LibraCoach !== 'undefined'){
+      const status = LibraCoach.getStatus();
+      if(status.unlocked){
+        const insights = LibraCoach.getCoachingInsights() || [];
+        if(insights.length){
+          h += `<div class="sec coach-sec">
+            <div class="sec-t">🧠 Libra Coach <span style="font-size:10px;color:var(--accent);margin-left:6px">Desbloqueado</span></div>`;
+          insights.slice(0, 3).forEach(ins => {
+            const bgColor = ins.severity === 'danger' ? 'rgba(248,113,113,0.1)'
+                          : ins.severity === 'warning' ? 'rgba(251,191,36,0.1)'
+                          : ins.severity === 'success' ? 'rgba(74,222,128,0.1)'
+                          : 'rgba(167,139,250,0.1)';
+            h += `<div class="c" style="background:${bgColor};padding:12px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span style="font-size:20px">${ins.icon}</span>
+                <b style="font-size:13px">${ins.title}</b>
+              </div>
+              <div style="font-size:12px;color:var(--t2);line-height:1.4">${ins.message}</div>
+              ${ins.suggestions ? `<ul style="margin:8px 0 0;padding-left:20px;font-size:11px;color:var(--t3)">
+                ${ins.suggestions.slice(0,3).map(s => `<li>${s}</li>`).join('')}
+              </ul>` : ''}
+            </div>`;
+          });
+          h += `</div>`;
+        }
+      } else if(status.daysToUnlock > 0){
+        h += `<div class="sec">
+          <div class="c" style="background:rgba(167,139,250,0.08);border:1px dashed var(--accent);padding:14px;text-align:center">
+            <div style="font-size:22px;margin-bottom:6px">🔒</div>
+            <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px">Libra Coach</div>
+            <div style="font-size:11px;color:var(--t3);line-height:1.4">
+              Desbloquea consejos personalizados cuando llegues a 7 dias de racha.
+              <br>Te faltan <b style="color:var(--accent)">${status.daysToUnlock} dia${status.daysToUnlock>1?'s':''}</b>.
+            </div>
+          </div>
+        </div>`;
+      }
+    }
+
     h+=`<div class="ring-wrap"><div class="ring-c"><svg viewBox="0 0 80 80"><circle class="ring-bg" cx="40" cy="40" r="36" stroke-width="6"/><circle class="ring-fg" cx="40" cy="40" r="36" stroke-width="6" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg><div class="ring-pct">${pct}%</div></div>
       <div class="ring-info"><h3>Progreso de hoy</h3><div class="mini">
       <div class="mini-i"><div class="dot" style="background:var(--accent)"></div>${Object.values(st.meals).filter(Boolean).length}/6 comidas</div>
