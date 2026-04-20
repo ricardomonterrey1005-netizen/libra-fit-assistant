@@ -600,3 +600,90 @@ input[type=number] { -moz-appearance: textfield }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important }
 }
+
+/* ===== TRACKING VIEWS (v2.0) ===== */
+.track-selectors { padding: 0 12px 8px; }
+.track-sel-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.track-chip {
+  padding: 6px 12px;
+  background: var(--bg3);
+  color: var(--t2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.track-chip.on {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.track-chip:hover { border-color: var(--accent); }
+
+.track-title {
+  font-size: 12px;
+  color: var(--t2);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.track-stats {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.track-stat {
+  flex: 1;
+  background: var(--bg3);
+  padding: 8px;
+  border-radius: 8px;
+  text-align: center;
+}
+.track-stat-v {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.track-stat-l {
+  font-size: 10px;
+  color: var(--t3);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.track-chart {
+  background: var(--bg3);
+  border-radius: 8px;
+  padding: 12px 8px;
+  overflow: hidden;
+}
+.chart-empty {
+  text-align: center;
+  color: var(--t3);
+  font-size: 12px;
+  padding: 40px 20px;
+}
+
+/* Quick-add button (v2.0) */
+.quick-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 48px;
+  margin: 8px 0;
+  box-shadow: 0 2px 8px rgba(167, 139, 250, 0.25);
+  transition: transform 150ms ease;
+}
+.quick-add-btn:active { transform: scale(0.98); }

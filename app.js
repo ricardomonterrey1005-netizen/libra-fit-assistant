@@ -610,9 +610,44 @@ const App={
     const w=getWeights(),g=getGoals(),an=Engine.bodyAnalysis(),mySups=getMySups();
 
     let h=`<div class="hdr"><div class="hdr-name">📊 Progreso</div></div>
-      <div class="tabs"><button class="tab ${sub==='peso'?'on':''}" data-a="subtab" data-p="Progreso" data-v="peso">Peso</button>
-      <button class="tab ${sub==='semanal'?'on':''}" data-a="subtab" data-p="Progreso" data-v="semanal">Semanal</button>
-      <button class="tab ${sub==='suple'?'on':''}" data-a="subtab" data-p="Progreso" data-v="suple">Suplementos</button></div>`;
+      <div class="tabs">
+        <button class="tab ${sub==='peso'?'on':''}" data-a="subtab" data-p="Progreso" data-v="peso">Peso</button>
+        <button class="tab ${sub==='tendencias'?'on':''}" data-a="subtab" data-p="Progreso" data-v="tendencias">Tendencias</button>
+        <button class="tab ${sub==='suple'?'on':''}" data-a="subtab" data-p="Progreso" data-v="suple">Suplementos</button>
+      </div>`;
+
+    // ===== TAB TENDENCIAS (nuevo v2.0) =====
+    if(sub==='tendencias'){
+      const metric = this._progresoMetric || 'score';
+      const period = this._progresoPeriod || 'week';
+      const meta = (typeof Tracking !== 'undefined' && Tracking.metrics[metric]) || {label:metric, unit:''};
+
+      // Selector metrica
+      const metrics = [
+        ['score','Puntuacion'], ['cal','Calorias'], ['protein','Proteina'],
+        ['carbs','Carbs'], ['fat','Grasas'], ['fiber','Fibra'], ['water','Agua']
+      ];
+      h += `<div class="sec"><div class="sec-t">📊 Tendencias</div>`;
+      h += `<div class="track-selectors">
+        <div class="track-sel-row">
+          ${metrics.map(([k,l]) => `<button class="track-chip ${metric===k?'on':''}" data-a="trackMetric" data-v="${k}">${l}</button>`).join('')}
+        </div>
+        <div class="track-sel-row" style="margin-top:8px">
+          <button class="track-chip ${period==='week'?'on':''}" data-a="trackPeriod" data-v="week">Semana</button>
+          <button class="track-chip ${period==='month'?'on':''}" data-a="trackPeriod" data-v="month">Mes</button>
+          <button class="track-chip ${period==='year'?'on':''}" data-a="trackPeriod" data-v="year">Ano</button>
+        </div>
+      </div>`;
+
+      h += `<div class="c" style="padding:12px">
+        <div class="track-title">${meta.label} · ${period==='week'?'Ultimos 7 dias':period==='month'?'Este mes':'Este ano'}</div>`;
+      if(typeof Tracking !== 'undefined'){
+        h += Tracking.renderTracking(metric, period);
+      } else {
+        h += `<div style="color:var(--t3);padding:20px;text-align:center">Tracking no disponible</div>`;
+      }
+      h += `</div></div>`;
+    }
 
     if(sub==='peso'){
       h+=`<div class="sec"><div class="c"><div class="search-row"><input type="number" class="search-inp" id="bwInp" placeholder="Peso en libras..." step="0.1">
@@ -628,63 +663,94 @@ const App={
         <div class="prof-row"><label>Peso inicial</label><input type="number" class="inp-sm" id="gS" value="${g.startWeight||''}" placeholder="195" data-a="goal" data-f="startWeight"></div></div></div>`;
       // Analysis
       if(an.length)h+=`<div class="sec"><div class="sec-t">🧠 Analisis</div>${an.map(a=>`<div class="alert ${a.t==='ok'?'a-ok':a.t==='warn'?'a-warn':'a-info'}"><span class="alert-i">${a.i}</span><span>${a.m}</span></div>`).join('')}</div>`;
-      // Chart
-      if(w.length>1){const l14=w.slice(0,14).reverse(),mn=Math.min(...l14.map(x=>x.weight))-2,mx=Math.max(...l14.map(x=>x.weight))+2,rng=mx-mn;
-        h+=`<div class="sec"><div class="sec-t">📈 Ultimos ${l14.length} registros</div><div class="chart"><div class="chart-y"><span>${mx.toFixed(0)}</span><span>${((mx+mn)/2).toFixed(0)}</span><span>${mn.toFixed(0)}</span></div>
-          <div class="chart-bars">${l14.map(x=>`<div class="chart-col"><div class="chart-bar" style="height:${(x.weight-mn)/rng*100}%"></div><div class="chart-xl">${pk(x.date).getDate()}</div></div>`).join('')}</div></div></div>`}
+      // Chart SVG (nuevo v2.0)
+      if(w.length>=2 && typeof Tracking !== 'undefined'){
+        const period = this._pesoPeriod || 'month';
+        h += `<div class="sec"><div class="sec-t">📈 Tendencia de peso</div>
+          <div class="track-sel-row" style="padding:0 12px 8px">
+            <button class="track-chip ${period==='week'?'on':''}" data-a="pesoP" data-v="week">Semana</button>
+            <button class="track-chip ${period==='month'?'on':''}" data-a="pesoP" data-v="month">Mes</button>
+            <button class="track-chip ${period==='year'?'on':''}" data-a="pesoP" data-v="year">Ano</button>
+          </div>
+          <div class="c" style="padding:12px">${Tracking.renderTracking('weight', period)}</div></div>`;
+      }
       // History
       if(w.length)h+=`<div class="sec"><div class="sec-t">📋 Historial</div>${w.slice(0,20).map((x,i)=>{const df=i<w.length-1?x.weight-w[i+1].weight:0;
         return`<div class="c" style="padding:8px 12px;display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">${fmtDate(x.date)}</span><div>
           <span style="font-weight:700">${x.weight}</span>${df?`<span style="font-size:11px;color:${df<0?'var(--green)':'var(--red)'};margin-left:6px">${df>0?'+':''}${df.toFixed(1)}</span>`:''}</div></div>`}).join('')}</div>`;
     }
 
-    if(sub==='semanal'){
-      h+=`<div class="sec"><div class="sec-t">📅 Ultimos 7 dias</div>`;
-      for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const s=getDay(d),m=Object.values(s.meals).filter(Boolean).length,wa=s.water>=4000,
-        ex=Object.keys(s.exLog).some(k=>s.exLog[k]?.sets?.some(x=>x.done)),dw=d.getDay();
-        h+=`<div class="c" style="padding:8px 12px;display:flex;justify-content:space-between"><span style="font-size:12px;color:var(--t2)">${fmtDate(dk(d))}</span>
-          <div style="display:flex;gap:6px;font-size:11px"><span>${m}/6🍽️</span><span>${wa?'✅':'❌'}💧</span><span>${ex?'✅':(SCHED[dw].g?'❌':'😴')}🏋️</span></div></div>`}
-      h+=`</div>`;
-    }
 
     if(sub==='suple'){
-      h+=`<div class="alert a-warn" style="margin:10px 14px"><span class="alert-i">⚠️</span><span style="font-size:11px"><b>AVISO:</b> Info educativa. NO receta medica. Consulta tu medico.</span></div>`;
+      const SDB = window.SupplementsDB;
+      h += `<div class="alert a-warn" style="margin:10px 14px"><span class="alert-i">⚠️</span>
+        <span style="font-size:11px"><b>AVISO:</b> Info educativa. NO es receta medica. Consulta tu medico.</span></div>`;
 
-      // My supplements
-      h+=`<div class="sec"><div class="sec-t">💊 Mis Suplementos</div>`;
-      if(mySups.length){
-        const mySupData=SUPS.filter(s=>mySups.includes(s.id));
-        mySupData.forEach(s=>{
-          h+=`<div class="c" style="padding:8px 12px"><div style="display:flex;justify-content:space-between;align-items:center">
-            <div><span style="margin-right:6px">${s.icon}</span><b style="font-size:13px">${s.name}</b></div>
-            <button class="btn-danger" style="padding:4px 10px;font-size:10px" data-a="rmSup" data-id="${s.id}">Quitar</button></div>
-            ${s.schedule?`<div style="font-size:11px;color:var(--t2);margin-top:4px">⏰ ${s.schedule.time} (${s.schedule.label}) · ${s.schedule.amount}</div>`:''}</div>`;
+      // Mis suplementos activos
+      h += `<div class="sec"><div class="sec-t">💊 Mis Suplementos</div>`;
+      if(mySups.length && SDB){
+        mySups.forEach(id => {
+          const s = SDB.getSupplement(id);
+          if(!s) return;
+          h += `<div class="c" style="padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div><b style="font-size:13px">${s.name}</b>
+                <span style="font-size:10px;color:var(--t3);margin-left:6px">Evidencia ${s.evidenceTier}</span></div>
+              <button class="btn-danger" style="padding:4px 10px;font-size:10px" data-a="rmSup" data-id="${s.id}">Quitar</button>
+            </div>
+            <div style="font-size:11px;color:var(--t2);margin-top:6px">${s.mainBenefit}</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:4px">Dosis: ${s.dose.daily || s.dose.maintenance || '-'}</div>
+          </div>`;
         });
-      }else h+=`<div class="c" style="text-align:center;color:var(--t3);padding:16px">No tienes suplementos activos. Agrega abajo.</div>`;
-      h+=`</div>`;
 
-      // All supplements catalog
-      h+=`<div class="sec"><div class="sec-t">📦 Catalogo</div>`;
-      SUPS.forEach(s=>{
-        const active=mySups.includes(s.id);
-        const pc=s.prio==='alta'?'var(--green)':s.prio==='media'?'var(--yellow)':'var(--t3)';
-        h+=`<div class="c sup-card"><div class="sup-hdr" data-a="tog" data-t="sup_${s.id}">
-          <span class="sup-icon">${s.icon}</span><div style="flex:1"><div class="sup-name">${s.name}</div>
-          <div class="sup-prio" style="color:${pc}">${s.prio==='alta'?'MUY RECOMENDADO':s.prio==='media'?'RECOMENDADO':'OPCIONAL'}</div></div>
-          <span style="font-size:11px;color:var(--t3)">▼</span></div>
-          <div style="padding:0 12px 10px"><div class="sup-rec">💡 <b>Para ti:</b> ${s.forYou}</div>
-          ${!active?`<button class="btn-accent" style="width:100%;margin-top:8px;font-size:12px" data-a="addSup" data-id="${s.id}">+ Agregar a mi rutina</button>`
-            :`<div style="text-align:center;font-size:11px;color:var(--green);margin-top:6px">✅ En tu rutina</div>`}</div>
-          <div class="sup-body hide" id="sup_${s.id}">
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--green)">✅ Beneficios</div><div class="sup-st">${s.ben.map(b=>'• '+b).join('<br>')}</div></div>
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--yellow)">⚠️ Contras</div><div class="sup-st">${s.con.map(c=>'• '+c).join('<br>')}</div></div>
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--red)">🚨 Efectos Adversos</div><div class="sup-st">${s.side}</div></div>
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--blue)">💊 Dosis</div><div class="sup-st">${s.dose}</div></div>
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--purple)">⏰ Cuando</div><div class="sup-st">${s.when}</div></div>
-            <div class="sup-sec"><div class="sup-sl" style="color:var(--t2)">🏷️ Marcas</div><div class="sup-st">${s.brands}</div></div>
-          </div></div>`;
-      });
-      h+=`</div><div class="rem"><div class="rem-t">📋 Recordatorio</div><div class="rem-i">NO es receta medica. Consulta profesional.</div><div class="rem-i">Suplementos COMPLEMENTAN, no reemplazan alimentacion.</div></div>`;
+        // Check peligros
+        const warnings = SDB.checkCombinations(mySups);
+        if(warnings.length){
+          h += `<div class="c" style="padding:10px 12px">`;
+          warnings.forEach(w => {
+            const clr = w.severity === 'high' ? 'var(--red)' : w.severity === 'medium' ? 'var(--yellow)' : 'var(--t3)';
+            h += `<div style="font-size:11px;color:${clr};margin:4px 0">⚠️ ${w.message}</div>`;
+          });
+          h += `</div>`;
+        }
+      } else {
+        h += `<div class="c" style="text-align:center;color:var(--t3);padding:16px">
+          Sin suplementos activos. Agregalos desde el catalogo abajo.</div>`;
+      }
+      h += `</div>`;
+
+      // Catalogo (filtrado por meta si hay)
+      const goalType = g.goalType;
+      h += `<div class="sec"><div class="sec-t">📦 Catalogo ${goalType ? '(recomendados para tu meta)' : ''}</div>`;
+      if(SDB){
+        const list = goalType ? SDB.byGoal(goalType) : SDB.SUPPLEMENTS;
+        const displayed = goalType ? list : list.filter(s => ['A','B+','B'].includes(s.evidenceTier));
+
+        displayed.slice(0, 20).forEach(s => {
+          const active = mySups.includes(s.id);
+          const tierColor = s.evidenceTier === 'A' ? 'var(--green)'
+                         : s.evidenceTier?.startsWith('B') ? 'var(--yellow)'
+                         : 'var(--t3)';
+          h += `<div class="c" style="padding:10px 12px">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div style="flex:1">
+                <b style="font-size:13px">${s.name}</b>
+                <span style="font-size:10px;color:${tierColor};margin-left:6px">${s.evidenceTier}</span>
+              </div>
+              ${active
+                ? `<span style="font-size:11px;color:var(--green)">✓ Activo</span>`
+                : `<button class="btn-accent" style="padding:4px 10px;font-size:11px" data-a="addSup" data-id="${s.id}">+ Agregar</button>`}
+            </div>
+            <div style="font-size:11px;color:var(--t2);margin-top:4px">${s.mainBenefit}</div>
+          </div>`;
+        });
+      }
+      h += `</div>`;
+      h += `<div class="rem" style="margin:10px 14px">
+        <div class="rem-t">📋 Recordatorio</div>
+        <div class="rem-i">NO es receta medica. Consulta profesional.</div>
+        <div class="rem-i">Suplementos complementan, no reemplazan alimentacion.</div>
+      </div>`;
     }
 
     return h;
@@ -836,6 +902,9 @@ const App={
       if(a==='tog'){const el=document.getElementById(t.dataset.t);if(el)el.classList.toggle('hide')}
       if(a==='go'){this.goTo(+t.dataset.p)}
       if(a==='subtab'){this.subTabs[t.dataset.p]=t.dataset.v;this.renderPage({Comida:1,Gym:2,Progreso:3}[t.dataset.p]);this.bind(document.getElementById('page'+t.dataset.p))}
+      if(a==='trackMetric'){this._progresoMetric=t.dataset.v;this.renderPage(3);this.bind(document.getElementById('pageProgreso'))}
+      if(a==='trackPeriod'){this._progresoPeriod=t.dataset.v;this.renderPage(3);this.bind(document.getElementById('pageProgreso'))}
+      if(a==='pesoP'){this._pesoPeriod=t.dataset.v;this.renderPage(3);this.bind(document.getElementById('pageProgreso'))}
 
       if(a==='search'){
         const q=document.getElementById('foodQ')?.value?.trim();if(!q)return;
