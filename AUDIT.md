@@ -10,6 +10,68 @@
 
 La app tiene **5,700 lineas de JS** distribuidas en 17 archivos. De esas, aproximadamente **~1,500 lineas son legacy/Ricardo-specific** que deben eliminarse o migrarse a configuracion por usuario en v2.0.
 
+## ⚠️ Ricardo-Personal Data Descubierto en Defaults (NO es para todos)
+
+Estos son los defaults del codigo que estan CABLEADOS con las preferencias personales de Ricardo.
+CUALQUIER usuario nuevo los hereda por defecto, lo cual NO funciona:
+
+### Dias de la semana (Ricardo: descansa Dom/Mie/Sab por dates)
+- **routines.js:86-92** `DEFAULT_SCHEDULE`: `0:null, 1:push, 2:pull, 3:null, 4:legs, 5:push, 6:null`
+  → Ricardo descansa Mie (dates) y fines de semana. Otro usuario puede querer entrenar esos dias.
+- **routines.js:96** `DEFAULT_CARDIO.days: [1,3,5]` (Lun/Mie/Vie)
+- **routines.js:97** `DEFAULT_CARDIO.type: 'caminadora'` (preferencia de Ricardo)
+- **data.js:219** `SCHED` legacy con mismo patron
+- **data.js:220** `BATCH` cooking en Dom/Mie/Jue (dias de cocinar de Ricardo)
+
+### Horas del dia (Ricardo: entrena 5 AM, duerme 10 PM)
+- **data.js:208,210** `RUT_A/B.time: '5:00-6:00 AM'` (hora de gym de Ricardo)
+- **data.js:11** desayuno 07:00
+- **data.js:15** almuerzo 12:00
+- **data.js:23** merienda2 16:30
+- **data.js:28** cena 20:30
+- **data.js:36** fibra 21:30
+- **meals.js:9** default meal times (mismas horas)
+
+### Notificaciones (minutos desde medianoche, horarios de Ricardo)
+- **engine.js:376** `t>=360` = 6:00 AM (hora de despertar)
+- **engine.js:377** `t>=285` = 4:45 AM (pre-alerta gym)
+- **engine.js:379** `t>=590` = 9:50 AM (merienda1)
+- **engine.js:380** `t>=710` = 11:50 AM (almuerzo)
+- **engine.js:381** `t>=980` = 4:20 PM (merienda2)
+- **engine.js:382** `t>=1220` = 8:20 PM (cena)
+- **engine.js:383** `t>=1285` = 9:25 PM (fibra)
+- **engine.js:387** `t>=1065` = 5:45 PM (cardio)
+- **engine.js:388** `t>=1305` = 9:45 PM (dormir)
+
+### Mensajes/textos hardcoded con datos personales
+- **app.js:757** "Briefing - Resumen 6 AM", "Dormir - 9:45 PM"
+- **libra.js:379** "Tu plan tiene desayuno porque entrenas 5 AM"
+- **libra.js:1052** "Cama a las 10 PM"
+- **data.js:485,493,501,517,524** Horarios de suplementos con horas de Ricardo
+
+### Suplementos default (Ricardo toma estos)
+- **data.js** `mysups: ['creatina', 'fibra', 'multi']` - otros pueden no tomar ninguno
+
+### IMPACTO
+Si un usuario nuevo crea cuenta:
+- Se le asigna Push Mon, Pull Tue, **descanso Wed**, Legs Thu, Push Fri, **descanso Sab-Dom** (patron Ricardo)
+- Cardio Mon/Wed/Fri (patron Ricardo)
+- Notificaciones a las 6 AM, 9:50 AM, 11:50 AM, 4:20 PM, 8:20 PM, 9:25 PM, 9:45 PM (horarios Ricardo)
+- Comidas a 7:00, 10:00, 12:00, 16:30, 20:30, 21:30 (horarios Ricardo)
+- Mensaje "entrenas 5 AM" aunque no entrene a esa hora
+- Suplementos cargados que probablemente no toma
+
+### ACCION v2.0
+Todo esto debe resolverse desde el **onboarding conversacional**:
+- Que dias prefieres entrenar? (checkboxes Lun-Dom)
+- Cuantas veces al dia? A que horas?
+- Horarios de comida (desayuno, almuerzo, cena, snacks)?
+- Cuantas horas duermes? A que hora te acuestas y despiertas?
+- Tomas suplementos? Cuales?
+- Horario de cardio (si aplica)?
+
+Los defaults del codigo NO deben existir. Todo debe preguntarse al usuario.
+
 ### Hallazgos criticos
 
 | Categoria | Archivos afectados | Lineas | Accion |
