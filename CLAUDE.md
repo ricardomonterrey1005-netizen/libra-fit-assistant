@@ -4,6 +4,34 @@
 > Contiene el contexto completo del proyecto para que cualquier instancia pueda continuar el trabajo sin perder informacion.
 > **REGLA OBLIGATORIA:** Cada vez que se haga un cambio en el proyecto, este archivo y DEVELOPMENT.md DEBEN actualizarse.
 
+## ⚠️ LEE ESTO PRIMERO - FILOSOFIA DE DESARROLLO
+
+**ANTES de escribir cualquier linea de codigo, LEE `DESIGN_PRINCIPLES.md`.**
+
+Los 10 mandamientos que SIEMPRE deben respetarse:
+1. **No esperaras** - Cero spinners. Optimistic UI. < 100ms de respuesta.
+2. **No mostraras lo innecesario** - Progressive disclosure. Una decision por pantalla.
+3. **No repetiras codigo ni conceptos** - DRY. Single source of truth.
+4. **No agregaras lo que no usas** - YAGNI. Codigo muerto se elimina.
+5. **Hablaras el idioma del usuario** - Todo en espanol natural.
+6. **Respetaras el contexto del usuario** - Usa hora, dia, meta para ser relevante.
+7. **Construiras con CSS Variables** - Design tokens, no hacks.
+8. **No interrumpiras al usuario** - Toasts > modales. Sin spam.
+9. **Mediras todo y optimizaras lo medido** - Sentry + Web Vitals.
+10. **Borraras sin piedad** - Codigo sin uso = basura.
+
+**ADN de la app: Minimalista · Intuitivo · Rapido · Util · Limpio**
+
+> "Si te quita mas tiempo del que te da, estamos haciendolo mal."
+
+Si una decision viola alguno de estos principios, SE RECHAZA o SE REESCRIBE.
+
+Referencias obligatorias antes de features nuevos:
+- `DESIGN_PRINCIPLES.md` - Como construir
+- `AUDIT.md` - Que limpiar
+- `ARCHITECTURE.md` - Como escalar
+- `research/` - Ciencia detras de recomendaciones
+
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant

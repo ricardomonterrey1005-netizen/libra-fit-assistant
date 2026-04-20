@@ -3,6 +3,14 @@
 > Documento vivo. Se actualiza con cada cambio en el proyecto.
 > Ultima actualizacion: 2026-04-19
 
+## Filosofia Core
+
+**ADN: Minimalista · Intuitivo · Rapido · Util · Limpio**
+
+Lee `DESIGN_PRINCIPLES.md` antes de tocar codigo. Los 10 mandamientos son LEY.
+
+Regla de oro: *"Si te quita mas tiempo del que te da, estamos haciendolo mal."*
+
 ---
 
 ## Estado Actual: v1.3.0 - LIVE EN PRODUCCION
