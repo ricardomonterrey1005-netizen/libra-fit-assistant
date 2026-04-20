@@ -55,9 +55,6 @@
       <div class="auth-forgot" id="authForgot">
         <button class="auth-link" onclick="authUI.showRecover()" style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:8px">Olvide mi contrasena</button>
       </div>
-      <div class="auth-offline" id="authOffline">
-        <button class="auth-link" onclick="authUI.offlineMode()">Usar sin cuenta (solo local)</button>
-      </div>
     </div>
     <!-- RECOVERY FORM -->
     <div class="auth-form hide" id="recoverForm">
@@ -177,6 +174,8 @@
 <script src="api.js"></script>
 <script src="data.js"></script>
 <script src="engine.js"></script>
+<script src="nutritionDB.js"></script>
+<script src="exerciseDB.js"></script>
 <script src="meals.js"></script>
 <script src="routines.js"></script>
 <script src="libra.js"></script>
@@ -364,13 +363,6 @@ const authUI = {
     }
   },
 
-  offlineMode() {
-    // Skip auth, use localStorage only with guest scope
-    localStorage.setItem('fr_offline', '1');
-    S.setScope('guest');
-    this.showApp();
-  },
-
   showApp() {
     document.getElementById('authScreen').classList.add('hide');
     document.getElementById('appShell').classList.remove('hide');
@@ -421,13 +413,12 @@ document.addEventListener('DOMContentLoaded', () => {
     welcomeEl.style.cssText = 'text-align:center;color:var(--accent);font-size:14px;font-weight:600;margin-bottom:12px;padding:8px;background:rgba(99,102,241,0.1);border-radius:8px;';
   }
 
+  // v2.0: NO hay guest mode. Solo se entra con cuenta.
   if (Auth.isLoggedIn()) {
-    // Scope is already set in Auth.init()
-    authUI.showApp();
-  } else if (localStorage.getItem('fr_offline') === '1') {
-    S.setScope('guest');
     authUI.showApp();
   }
+  // Limpiar cualquier rastro legacy de guest mode
+  localStorage.removeItem('fr_offline');
 });
 
 // Listen for auth changes

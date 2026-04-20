@@ -754,7 +754,7 @@ const App={
       </div></div>`;
 
     h+=`<div class="sec"><div class="sec-t">🔔 Notificaciones</div><div class="c">
-      ${[['notif','🔔 Notificaciones','Todas las alertas'],['morning','☀️ Briefing','Resumen 6 AM'],['meal','🍽️ Comidas','10 min antes'],['water','💧 Agua','Cada 2 horas'],['gym','🏋️ Ejercicio','Antes gym/cardio'],['sleep','😴 Dormir','9:45 PM']].map(([k,l,s])=>
+      ${[['notif','🔔 Notificaciones','Todas las alertas'],['morning','☀️ Briefing matutino','A tu hora de despertar'],['meal','🍽️ Comidas','A las horas de tus comidas'],['water','💧 Agua','Cada pocas horas'],['gym','🏋️ Ejercicio','Antes de entrenar'],['sleep','😴 Dormir','A tu hora de dormir']].map(([k,l,s])=>
         `<div class="set-row"><div><div class="set-lbl">${l}</div><div class="set-sub">${s}</div></div><button class="tog ${set[k]?'on':''}" data-a="togSet" data-k="${k}"></button></div>`).join('')}</div></div>`;
 
     // Security section
@@ -894,10 +894,16 @@ const App={
         this.toast('✅ Perfil guardado');this.renderPage(4);this.bind(document.getElementById('pagePerfil'))}
 
       if(a==='reset'){if(confirm('Borrar datos de hoy?')){S.d('d_'+dk());this.toast('Reiniciado');this.renderAll()}}
-      if(a==='export'){const d={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith('fr_'))d[k]=localStorage.getItem(k)}
-        const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download=`fitricardo_${dk()}.json`;l.click()}
+      if(a==='export'){const d={};const prefix=S._prefix('');for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(prefix))d[k]=localStorage.getItem(k)}
+        const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),l=document.createElement('a');l.href=u;l.download=`librafit_backup_${dk()}.json`;l.click()}
 
-      if(a==='logout'){if(typeof Auth!=='undefined'){Auth.logout();localStorage.removeItem('fr_offline')}}
+      if(a==='logout'){
+        if(confirm('Cerrar sesion? Tus datos quedan guardados en el servidor y vuelven cuando te logueas.')){
+          if(typeof Auth!=='undefined')Auth.logout();
+          localStorage.removeItem('fr_offline');
+          location.reload();
+        }
+      }
       if(a==='changePw'){
         this.modal('Cambiar Contrasena',`<div class="auth-field"><label>Actual</label><input type="password" id="cpCur" class="search-inp" style="width:100%;margin-bottom:8px"></div>
           <div class="auth-field"><label>Nueva</label><input type="password" id="cpNew" class="search-inp" style="width:100%;margin-bottom:8px"></div>

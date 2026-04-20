@@ -376,11 +376,11 @@ const Libra = {
     { patterns: ['que es deficit', 'deficit calorico', 'que significa deficit'],
       response: 'Deficit calorico = **comer MENOS de lo que tu cuerpo quema**. Es la unica forma de bajar grasa.\n\n• Deficit suave: 200-300 cal/dia\n• Deficit agresivo: 500-700 cal/dia\n• Muy agresivo: >800 (pierdes musculo)\n\nTu plan actual es deficit moderado.'},
     { patterns: ['debo desayunar', 'ayuno intermitente', 'saltarse desayuno'],
-      response: 'Depende de ti. **Ayuno intermitente (16:8)** funciona si te acomoda, pero no es magia.\n\nLo importante es: calorias totales + proteina alta. Si prefieres desayunar, desayuna.\n\nTu plan tiene desayuno porque entrenas 5 AM (necesitas energia).'},
+      response: 'Depende de ti. **Ayuno intermitente (16:8)** funciona si te acomoda, pero no es magia.\n\nLo importante son las calorias totales + proteina alta del dia. Si prefieres desayunar, desayuna.\n\nSi entrenas temprano en la manana, desayunar algo ligero ayuda con la energia.'},
     { patterns: ['cardio en ayunas', 'ayunas cardio'],
-      response: 'Cardio en ayunas NO quema mas grasa que cardio con comida (los estudios son claros).\n\nPero tiene ventaja: mas comodo hacerlo temprano antes de trabajar. Si te funciona mental/logisticamente: dale.'},
+      response: 'Cardio en ayunas NO quema mas grasa que cardio con comida (los estudios son claros).\n\nVentaja: mas comodo hacerlo temprano antes del trabajo. Si te funciona mental y logisticamente, dale.'},
     { patterns: ['cuanto descansar entre series', 'descanso entre series'],
-      response: '• **Fuerza (4-6 reps):** 2-3 min\n• **Hipertrofia (8-12 reps):** 60-90 seg\n• **Resistencia (15+ reps):** 30-45 seg\n\nTu plan es 45-60s porque es hipertrofia + eficiencia de tiempo.'},
+      response: '• **Fuerza (4-6 reps):** 2-3 min\n• **Hipertrofia (8-12 reps):** 60-90 seg\n• **Resistencia (15+ reps):** 30-45 seg\n\nAjusta segun la meta de tu plan.'},
     { patterns: ['agua cuanto tomar', 'cuanta agua al dia'],
       response: 'Minimo: **3-4 litros/dia** (mas si entrenas/calor).\n\nSenal: orina clara = bien hidratado. Orina amarilla oscura = toma mas.\n\nTu meta es 4L.'},
   ],
@@ -1049,7 +1049,7 @@ const Libra = {
             this.context.awaitingConfirm = 'add_magnesio';
           }
         } else {
-          response = 'El sueno es CLAVE para quemar grasa y ganar musculo. Meta: 7-8 horas. Cama a las 10 PM.';
+          response = 'El sueno es CLAVE para quemar grasa y ganar musculo. Meta: 7-8 horas por noche.';
           if (!getMySups().includes('magnesio')) {
             response += '\nMagnesio glicinato antes de dormir te ayuda a dormir mejor y mas profundo.';
           }

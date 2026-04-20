@@ -1,183 +1,183 @@
 // ================================================================
 //  LIBRA FIT - USER MEAL CONFIGURATION
-//  Permite al usuario personalizar completamente sus comidas
+// ================================================================
+//  v2.0: Plantilla VACIA por defecto. El usuario configura todo en
+//  el onboarding. No hay horarios ni alimentos pre-cargados.
+//
+//  Estructura por comida:
+//    { id, label, time, days:[0-6], foods:[{foodKey, grams}], notes }
 // ================================================================
 
 const UserMeals = {
-  // Plantilla por defecto: 5 comidas diarias todos los dias, sin alimentos
-  DEFAULT_TEMPLATE: [
-    { id:'desayuno',  label:'Desayuno',   time:'07:00', days:[0,1,2,3,4,5,6], foods:[], notes:'' },
-    { id:'merienda1', label:'Merienda 1', time:'10:00', days:[0,1,2,3,4,5,6], foods:[], notes:'' },
-    { id:'almuerzo',  label:'Almuerzo',   time:'12:30', days:[0,1,2,3,4,5,6], foods:[], notes:'' },
-    { id:'merienda2', label:'Merienda 2', time:'16:00', days:[0,1,2,3,4,5,6], foods:[], notes:'' },
-    { id:'cena',      label:'Cena',       time:'19:00', days:[0,1,2,3,4,5,6], foods:[], notes:'' }
-  ],
-
-  // Obtiene la plantilla activa del usuario
-  getUserMeals(){
-    const m = S.g('userMeals', null);
-    if(!m || !Array.isArray(m) || !m.length) return JSON.parse(JSON.stringify(this.DEFAULT_TEMPLATE));
-    return m;
+  // ===== USER DATA =====
+  // Usuario nuevo: arreglo vacio. Configura en onboarding.
+  getUserMeals() {
+    return S.g('userMeals', []);
   },
 
-  // Guarda la plantilla completa
-  saveUserMeals(meals){
+  saveUserMeals(meals) {
     S.s('userMeals', meals);
   },
 
-  // Reinicia a la plantilla por defecto
-  resetToDefault(){
-    this.saveUserMeals(JSON.parse(JSON.stringify(this.DEFAULT_TEMPLATE)));
+  resetToDefault() {
+    this.saveUserMeals([]);
   },
 
-  // Verifica si el usuario ya ha configurado sus comidas
-  hasCustom(){
-    return !!S.g('userMeals', null);
+  hasCustom() {
+    if (typeof localStorage === 'undefined') return false;
+    return !!localStorage.getItem(S._prefix('userMeals'));
   },
 
-  // Obtiene las comidas activas para un dia de la semana (0=Dom..6=Sab)
-  getTodayMeals(dow){
-    if(dow===undefined||dow===null) dow = new Date().getDay();
-    return this.getUserMeals()
-      .filter(m => !m.days || m.days.includes(dow))
-      .sort((a,b) => a.time.localeCompare(b.time));
+  // ===== QUERIES =====
+  getTodayMeals(dow = new Date().getDay()) {
+    const meals = this.getUserMeals();
+    return meals.filter(m => Array.isArray(m.days) && m.days.includes(dow));
   },
 
-  // Calcula macros totales de UNA comida
-  calcMealMacros(meal){
-    const tot = {cal:0,p:0,c:0,fat:0,fib:0};
-    if(!meal||!Array.isArray(meal.foods)) return tot;
-    meal.foods.forEach(item => {
-      const m = foodMacros(item.foodKey, item.grams||0);
-      tot.cal += m.cal; tot.p += m.p; tot.c += m.c; tot.fat += m.fat; tot.fib += m.fib;
+  getMealById(id) {
+    if (!id) return null;
+    return this.getUserMeals().find(m => m.id === id) || null;
+  },
+
+  // ===== CALCULOS =====
+  // Calcula macros totales de una comida (sumando foods[].grams * macros/100g)
+  calcMealMacros(meal) {
+    const totals = { cal:0, protein:0, carbs:0, fat:0, fiber:0 };
+    if (!meal || !Array.isArray(meal.foods)) return totals;
+    meal.foods.forEach(f => {
+      const food = this._getFoodData(f.foodKey);
+      if (!food) return;
+      const grams = Number(f.grams) || 0;
+      const factor = grams / 100;
+      totals.cal     += (food.cal     || 0) * factor;
+      totals.protein += (food.protein || 0) * factor;
+      totals.carbs   += (food.carbs   || 0) * factor;
+      totals.fat     += (food.fat     || 0) * factor;
+      totals.fiber   += (food.fiber   || 0) * factor;
     });
-    // Redondear
-    tot.cal = Math.round(tot.cal);
-    tot.p = Math.round(tot.p*10)/10;
-    tot.c = Math.round(tot.c*10)/10;
-    tot.fat = Math.round(tot.fat*10)/10;
-    tot.fib = Math.round(tot.fib*10)/10;
-    return tot;
+    Object.keys(totals).forEach(k => { totals[k] = Math.round(totals[k] * 10) / 10; });
+    return totals;
   },
 
-  // Calcula macros totales del dia (todas las comidas activas + extras)
-  // Usa las comidas REALMENTE comidas si hay override en st.meals[id] = {foods:[...]}
-  calcDayMacros(dow,st){
-    dow = dow ?? new Date().getDay();
-    st = st || getDay();
-    const tot = {cal:0,p:0,c:0,fat:0,fib:0};
-    this.getTodayMeals(dow).forEach(meal => {
-      const actual = st.meals && st.meals[meal.id];
-      // Solo sumar si la comida esta marcada como hecha (como lo hace el sistema legacy)
-      if(!actual) return;
-      let foodsToUse = meal.foods;
-      if(typeof actual === 'object' && Array.isArray(actual.foods)) foodsToUse = actual.foods;
-      const m = this.calcMealMacros({foods:foodsToUse});
-      tot.cal += m.cal; tot.p += m.p; tot.c += m.c; tot.fat += m.fat; tot.fib += m.fib;
+  // Calcula totales del dia (todas las comidas activas + extras registrados)
+  calcDayMacros(dow = new Date().getDay(), dayState = null) {
+    const totals = { cal:0, protein:0, carbs:0, fat:0, fiber:0 };
+    const todayMeals = this.getTodayMeals(dow);
+
+    // Comidas del plan marcadas como hechas
+    todayMeals.forEach(meal => {
+      if (!dayState || !dayState.meals) return;
+      const mealState = dayState.meals[meal.id];
+      if (!mealState) return;
+      // Si hay override (comio algo distinto), usar ese
+      const effective = mealState.foods || meal.foods;
+      const macros = this.calcMealMacros({ foods: effective });
+      Object.keys(totals).forEach(k => { totals[k] += macros[k]; });
     });
-    // Extras (quick-add)
-    (st.extras||[]).forEach(e => {
-      const c = Number(e.c); if(!isNaN(c)) tot.cal += c;
-      if(e.p) tot.p += Number(e.p)||0;
-      if(e.cb) tot.c += Number(e.cb)||0;
-      if(e.f) tot.fat += Number(e.f)||0;
-    });
-    tot.cal = Math.round(tot.cal);
-    tot.p = Math.round(tot.p*10)/10;
-    tot.c = Math.round(tot.c*10)/10;
-    tot.fat = Math.round(tot.fat*10)/10;
-    tot.fib = Math.round(tot.fib*10)/10;
-    return tot;
+
+    // Extras registrados
+    if (dayState && Array.isArray(dayState.extras)) {
+      dayState.extras.forEach(e => {
+        totals.cal     += Number(e.cal)     || Number(e.c) || 0;
+        totals.protein += Number(e.protein) || Number(e.p) || 0;
+        totals.carbs   += Number(e.carbs)   || Number(e.cb) || 0;
+        totals.fat     += Number(e.fat)     || Number(e.f) || 0;
+        totals.fiber   += Number(e.fiber)   || 0;
+      });
+    }
+
+    Object.keys(totals).forEach(k => { totals[k] = Math.round(totals[k] * 10) / 10; });
+    return totals;
   },
 
-  // Calcula metas de macros basado en perfil (weight_kg * 1.8g proteina)
-  calcTargets(){
-    const p = getProfile();
-    const bud = calBudget();
-    // Peso en kg (si esta en libras convertir)
-    let kg = 70;
-    const w = getWeights();
-    if(w.length) kg = w[0].weight / 2.2046;
-    else if(p.wStart) kg = p.wStart / 2.2046;
-    const protTarget = Math.round(kg * 1.8);
-    // Distribucion: proteina = 4cal/g, carbs = 4cal/g, fat = 9cal/g
-    const protCal = protTarget * 4;
-    // Fat = 25-30% de calorias
-    const fatCal = Math.round(bud.target * 0.28);
-    const fatTarget = Math.round(fatCal / 9);
-    // Carbs = el resto
-    const carbCal = bud.target - protCal - fatCal;
-    const carbTarget = Math.max(100, Math.round(carbCal / 4));
-    return {
-      cal: bud.target,
-      p: protTarget,
-      c: carbTarget,
-      fat: fatTarget,
-      fib: 30
-    };
+  // Calcula targets del usuario (proteina, grasa, carbs)
+  // Basado en peso corporal + meta + actividad
+  calcTargets() {
+    const profile = typeof getProfile === 'function' ? getProfile() : {};
+    const goals = typeof getGoals === 'function' ? getGoals() : {};
+    const weightLbs = profile.wStart || profile.weight || 0;
+    const weightKg = weightLbs * 0.453592;
+
+    // Calorias target viene del BMR/TDEE si existe
+    let calTarget = 2000;
+    if (typeof calBudget === 'function') {
+      const bud = calBudget();
+      calTarget = bud.target || 2000;
+    }
+
+    // Proteina: depende de la meta
+    let proteinPerKg = 1.6;
+    if (goals.goalType === 'fat_loss')    proteinPerKg = 2.0;  // preservar musculo
+    if (goals.goalType === 'muscle_gain') proteinPerKg = 1.8;
+    if (goals.goalType === 'strength')    proteinPerKg = 1.8;
+    if (goals.goalType === 'endurance')   proteinPerKg = 1.4;
+
+    const proteinTarget = weightKg > 0 ? Math.round(weightKg * proteinPerKg) : 0;
+    const fatTarget = Math.round((calTarget * 0.28) / 9);                 // 28% cal de grasa
+    const proteinCal = proteinTarget * 4;
+    const fatCal = fatTarget * 9;
+    const carbsTarget = Math.max(0, Math.round((calTarget - proteinCal - fatCal) / 4));
+    const fiberTarget = 25 + (weightKg > 70 ? 5 : 0);
+
+    return { cal: calTarget, protein: proteinTarget, carbs: carbsTarget, fat: fatTarget, fiber: fiberTarget };
   },
 
-  // Reemplazar un alimento en la PLANTILLA
-  swapFood(mealId, foodIndex, newFoodKey, newGrams){
+  // ===== ACCIONES =====
+  // Cambiar un alimento de una comida (live swap)
+  swapFood(mealId, foodIndex, newFoodKey, newGrams) {
     const meals = this.getUserMeals();
     const meal = meals.find(m => m.id === mealId);
-    if(!meal || !meal.foods || !meal.foods[foodIndex]) return false;
-    meal.foods[foodIndex] = { foodKey:newFoodKey, grams:newGrams||100 };
+    if (!meal || !meal.foods[foodIndex]) return false;
+    meal.foods[foodIndex] = { foodKey: newFoodKey, grams: newGrams };
     this.saveUserMeals(meals);
     return true;
   },
 
-  // Registrar lo que el usuario COMIO de verdad en una comida (override por dia)
-  logActualEaten(mealId, foods, st){
-    st = st || getDay();
-    st.meals = st.meals || {};
-    st.meals[mealId] = { done:true, foods: foods };
-    saveDay(st);
+  // Registrar lo que se comio realmente (override del plan)
+  // dayState.meals[mealId] = { done:true, foods:[{foodKey,grams}] }
+  logActualEaten(dayState, mealId, foods) {
+    if (!dayState.meals) dayState.meals = {};
+    dayState.meals[mealId] = { done: true, foods: foods, at: new Date().toISOString() };
+    return dayState;
   },
 
-  // Helper: obtener meal definition por id
-  getMealById(id){
-    return this.getUserMeals().find(m => m.id === id) || null;
+  // Busca alimentos por texto (fuzzy)
+  searchFoods(query) {
+    if (!query) return [];
+    if (typeof window !== 'undefined' && window.FoodDB && window.FoodDB.searchFood) {
+      return window.FoodDB.searchFood(query);
+    }
+    return [];
   },
 
-  // Fuzzy search en foods (por key o nombre)
-  searchFoods(q,limit=8){
-    if(!q||q.length<2) return [];
-    return searchFood(q).slice(0, limit);
+  // ===== HELPERS =====
+  newMealId() {
+    return 'meal_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  },
+
+  _getFoodData(foodKey) {
+    if (typeof window !== 'undefined' && window.FoodDB && window.FoodDB.getFood) {
+      const f = window.FoodDB.getFood(foodKey);
+      if (f) return {
+        cal: f.cal, protein: f.protein, carbs: f.carbs,
+        fat: f.fat, fiber: f.fiber, name: f.name
+      };
+    }
+    // Fallback a constante FOOD (que usa Proxy a FoodDB tambien)
+    if (typeof FOOD !== 'undefined' && FOOD[foodKey]) {
+      const f = FOOD[foodKey];
+      return {
+        cal: f.c, protein: f.p, carbs: f.cb, fat: f.f,
+        fiber: f.fib || 0, name: f.n
+      };
+    }
+    return null;
   }
 };
 
-// Helper global: obtiene plan de comida para HOY (usa UserMeals si hay custom, si no el plan legacy)
-function getMealForToday(id, dow){
-  if(dow===undefined) dow = new Date().getDay();
-  // Si hay plantilla custom
-  if(UserMeals.hasCustom()){
-    const um = UserMeals.getMealById(id);
-    if(um){
-      const macros = UserMeals.calcMealMacros(um);
-      const desc = um.foods && um.foods.length
-        ? um.foods.map(f => {
-            const food = FOOD[f.foodKey];
-            return food ? `${f.grams}g ${food.n}` : f.foodKey;
-          }).join(' + ')
-        : 'Sin configurar';
-      return {
-        desc,
-        alts: [],
-        cal: macros.cal,
-        p: macros.p,
-        cb: macros.c,
-        f: macros.fat,
-        fib: macros.fib,
-        prep: 0,
-        time: um.time,
-        label: um.label,
-        custom: true,
-        foods: um.foods
-      };
-    }
-  }
-  // Fallback al sistema legacy
-  if(typeof MEALS !== 'undefined' && MEALS[id]) return getMeal(id, dow);
-  return null;
+// ===== HELPERS GLOBALES =====
+// getMealForToday(id, dow) - retorna la comida de hoy (custom o null)
+function getMealForToday(id, dow) {
+  const today = UserMeals.getTodayMeals(dow);
+  return today.find(m => m.id === id) || null;
 }

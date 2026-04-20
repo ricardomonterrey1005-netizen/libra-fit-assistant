@@ -26,8 +26,8 @@ self.addEventListener('fetch', e => {
 
 self.addEventListener('periodicsync', e => {
   if (e.tag === 'water-reminder') {
-    e.waitUntil(self.registration.showNotification('FitRicardo', {
-      body: 'Ya tomaste agua? Tu meta son 4 litros hoy.',
+    e.waitUntil(self.registration.showNotification('Libra Fit', {
+      body: 'Recuerda hidratarte hoy.',
       tag: 'water', renotify: true
     }));
   }

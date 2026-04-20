@@ -66,33 +66,28 @@ router.post('/register', registerLimiter, async (req, res) => {
       status: 'completed'
     });
 
-    // Initialize default data (blank - user completes onboarding)
+    // Initialize EMPTY data - usuario completa TODO en onboarding
+    // v2.0: zero datos precargados
     db.setData(user.id, 'profile', {
-      name: '',
-      age: null,
-      gender: 'masculino',
-      height: null,
-      wStart: null,
-      wGoal: null,
-      activity: 'moderado',
-      bodyFat: null,
-      muscleMass: null,
-      visceralFat: null,
-      metaAge: null,
-      bmr: null,
-      notes: ''
+      name: '', age: null, gender: null, height: null,
+      wStart: null, wGoal: null, activity: null,
+      bodyFat: null, muscleMass: null, visceralFat: null,
+      metaAge: null, bmr: null, notes: ''
     });
     db.setData(user.id, 'settings', {
-      notif: true, water: true, sleep: true,
-      meal: true, gym: true, morning: true
+      notif: true, water: true, sleep: true, meal: true, gym: true, morning: true,
+      morningTime: '07:00', sleepTime: '22:00',
+      waterEvery: 2, waterTarget: 2500
+    });
+    db.setData(user.id, 'goals', {
+      goalType: null, targetWeight: null, targetDate: null, startWeight: null, subGoals: []
     });
     db.setData(user.id, 'mysups', []);
-    db.setData(user.id, 'goals', {
-      targetWeight: null,
-      targetDate: null,
-      startWeight: null
-    });
     db.setData(user.id, 'bw', []);
+    db.setData(user.id, 'userMeals', []);        // sin plan de comidas
+    db.setData(user.id, 'userRoutines', []);     // sin rutinas
+    db.setData(user.id, 'weekSchedule', { 0:null, 1:null, 2:null, 3:null, 4:null, 5:null, 6:null });
+    db.setData(user.id, 'cardioConfig', { days: [], type: null, duration: 0 });
 
     res.status(201).json({
       ok: true,

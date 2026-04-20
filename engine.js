@@ -1,8 +1,13 @@
 // ================================================================
-//  FITRICARDO - SMART ENGINE + STORAGE
+//  LIBRA FIT - CORE ENGINE (storage, calculos, rachas, notifs)
+// ================================================================
+//  v2.0 CLEAN:
+//  - Cero defaults personales (nombre, horarios, suplementos, rutinas)
+//  - BMR/TDEE dinamicos (Mifflin-St Jeor)
+//  - Notificaciones basadas en config del usuario (horarios propios)
 // ================================================================
 
-// ===== HELPERS =====
+// ===== HELPERS DE FECHAS =====
 function dk(d=new Date()){return`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
 function pk(k){const[y,m,d]=k.split('-').map(Number);return new Date(y,m-1,d)}
 function dBetween(a,b){return Math.ceil((b-a)/864e5)}
@@ -10,60 +15,57 @@ function fmtDate(k){const d=pk(k);return`${DAY_SHORT[d.getDay()]} ${d.getDate()}
 function tomorrow(){const d=new Date();d.setDate(d.getDate()+1);return d}
 
 // ===== STORAGE (localStorage + Server Sync) =====
-const S={
-  _scope:'guest',
-  _prefix(k){return`fr_${this._scope}_${k}`},
+const S = {
+  _scope: 'guest',
+  _prefix(k){ return `fr_${this._scope}_${k}` },
   setScope(userId){
-    this._scope=userId||'guest';
-    console.log('Storage scope:',this._scope);
+    this._scope = userId || 'guest';
+    console.log('Storage scope:', this._scope);
   },
-  g(k,d=null){try{const v=localStorage.getItem(this._prefix(k));return v?JSON.parse(v):d}catch(e){return d}},
-  s(k,v){
-    localStorage.setItem(this._prefix(k),JSON.stringify(v));
-    // Sync to server if available
-    if(typeof Sync!=='undefined'&&Sync.push)Sync.push(k,v);
+  g(k, d=null){
+    try { const v = localStorage.getItem(this._prefix(k)); return v ? JSON.parse(v) : d; }
+    catch(e) { return d; }
+  },
+  s(k, v){
+    localStorage.setItem(this._prefix(k), JSON.stringify(v));
+    if(typeof Sync !== 'undefined' && Sync.push) Sync.push(k, v);
   },
   d(k){
     localStorage.removeItem(this._prefix(k));
-    // Sync deletion to server
-    if(typeof Sync!=='undefined'&&Auth?.isLoggedIn()&&typeof API_BASE!=='undefined'){
-      fetch(`${API_BASE}/data/delete/${k}`,{
-        method:'DELETE',headers:{'Authorization':'Bearer '+Auth.token}
-      }).catch(()=>{});
+    if(typeof Sync !== 'undefined' && Auth?.isLoggedIn() && typeof API_BASE !== 'undefined'){
+      fetch(`${API_BASE}/data/delete/${k}`, {
+        method: 'DELETE', headers: {'Authorization': 'Bearer ' + Auth.token}
+      }).catch(() => {});
     }
   },
-  // Remove all keys for current scope
   clearScope(){
-    const prefix=`fr_${this._scope}_`;
-    const toRemove=[];
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(key&&key.startsWith(prefix))toRemove.push(key);
+    const prefix = `fr_${this._scope}_`;
+    const toRemove = [];
+    for(let i=0; i<localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(key && key.startsWith(prefix)) toRemove.push(key);
     }
-    toRemove.forEach(k=>localStorage.removeItem(k));
+    toRemove.forEach(k => localStorage.removeItem(k));
     console.log(`Cleared ${toRemove.length} keys for scope: ${this._scope}`);
   },
-  // Migrate old unscoped fr_ keys to a user scope
   migrateOldKeys(userId){
-    const oldPrefix='fr_';
-    const newPrefix=`fr_${userId}_`;
-    // Skip keys that are auth-related or already scoped
-    const skipKeys=['fr_token','fr_user','fr_offline','fr_lastUser'];
-    const toMigrate=[];
-    for(let i=0;i<localStorage.length;i++){
-      const key=localStorage.key(i);
-      if(!key||!key.startsWith(oldPrefix))continue;
-      if(skipKeys.includes(key))continue;
-      // Skip if key is already scoped (fr_<userId>_ or fr_guest_)
-      const afterPrefix=key.slice(3); // after 'fr_'
-      if(afterPrefix.includes('_')&&(afterPrefix.startsWith('guest_')||afterPrefix.match(/^[0-9a-f]{8}-/)))continue;
+    const oldPrefix = 'fr_';
+    const newPrefix = `fr_${userId}_`;
+    const skipKeys = ['fr_token','fr_user','fr_offline','fr_lastUser'];
+    const toMigrate = [];
+    for(let i=0; i<localStorage.length; i++){
+      const key = localStorage.key(i);
+      if(!key || !key.startsWith(oldPrefix)) continue;
+      if(skipKeys.includes(key)) continue;
+      const afterPrefix = key.slice(3);
+      if(afterPrefix.includes('_') && (afterPrefix.startsWith('guest_') || afterPrefix.match(/^[0-9a-f]{8}-/))) continue;
       toMigrate.push(key);
     }
-    if(!toMigrate.length)return false;
-    toMigrate.forEach(key=>{
-      const shortKey=key.slice(3); // remove 'fr_'
-      const val=localStorage.getItem(key);
-      localStorage.setItem(newPrefix+shortKey,val);
+    if(!toMigrate.length) return false;
+    toMigrate.forEach(key => {
+      const shortKey = key.slice(3);
+      const val = localStorage.getItem(key);
+      localStorage.setItem(newPrefix + shortKey, val);
       localStorage.removeItem(key);
     });
     console.log(`Migrated ${toMigrate.length} old keys to scope: ${userId}`);
@@ -71,320 +73,535 @@ const S={
   }
 };
 
-function getDay(d=new Date()){return S.g('d_'+dk(d),{meals:{},water:0,exLog:{},cardioId:null,cardioDone:false,extras:[]})}
-function saveDay(st,d=new Date()){S.s('d_'+dk(d),st)}
-function getProfile(){return S.g('profile',{name:'',age:null,gender:'masculino',height:null,wStart:null,wGoal:null,activity:'moderado',bodyFat:null,muscleMass:null,visceralFat:null,metaAge:null,bmr:null,notes:''})}
-function saveProfile(p){S.s('profile',p)}
-function getGoals(){return S.g('goals',{targetWeight:null,targetDate:null,startWeight:null})}
-function saveGoals(g){S.s('goals',g)}
-function getSettings(){return S.g('settings',{notif:true,water:true,sleep:true,meal:true,gym:true,morning:true})}
-function saveSettings(s){S.s('settings',s)}
-function getWeights(){return S.g('bw',[])}
-function saveWeights(w){S.s('bw',w)}
-function getExHist(id){return S.g('eh_'+id,[])}
-function saveExHist(id,h){S.s('eh_'+id,h)}
-function getMySups(){return S.g('mysups',['creatina','fibra','multi'])}
-function saveMySups(s){S.s('mysups',s)}
+// ===== STATE GETTERS (todos con defaults VACIOS/NULL) =====
+function getDay(d=new Date()){ return S.g('d_'+dk(d), {meals:{}, water:0, exLog:{}, cardioId:null, cardioDone:false, extras:[]}) }
+function saveDay(st, d=new Date()){ S.s('d_'+dk(d), st) }
 
-// ===== CALORIE ENGINE =====
-function calBudget(){const p=getProfile();return{target:p.bmr?Math.round(p.bmr*1.15):1900,min:1500,max:2200}}
-function todayCal(st,dow){
-  // Si hay plantilla custom, usar UserMeals
-  if(typeof UserMeals!=='undefined' && UserMeals.hasCustom()){
-    return UserMeals.calcDayMacros(dow,st).cal;
+// Profile VACIO por defecto - usuario completa en onboarding
+function getProfile(){ return S.g('profile', {
+  name:'', age:null, gender:null, height:null,
+  wStart:null, wGoal:null, activity:null,
+  bodyFat:null, muscleMass:null, visceralFat:null, metaAge:null,
+  bmr:null, notes:''
+})}
+function saveProfile(p){ S.s('profile', p) }
+
+// Goals VACIOS - sin fecha meta, sin peso meta
+function getGoals(){ return S.g('goals', {
+  goalType:null,      // fat_loss, muscle_gain, etc.
+  targetWeight:null,
+  targetDate:null,
+  startWeight:null,
+  subGoals:[]         // metas medibles adicionales
+})}
+function saveGoals(g){ S.s('goals', g) }
+
+// Settings con defaults razonables (todo activado pero horarios son del usuario)
+function getSettings(){ return S.g('settings', {
+  notif:true, water:true, sleep:true, meal:true, gym:true, morning:true,
+  // Horarios personalizables (usuario los define en onboarding)
+  morningTime:'07:00',       // briefing matutino
+  sleepTime:'22:00',         // hora de dormir
+  waterEvery:2,              // recordar agua cada N horas
+  waterTarget:2500           // mL/dia default (se ajusta por peso)
+})}
+function saveSettings(s){ S.s('settings', s) }
+
+function getWeights(){ return S.g('bw', []) }
+function saveWeights(w){ S.s('bw', w) }
+
+function getExHist(id){ return S.g('eh_'+id, []) }
+function saveExHist(id, h){ S.s('eh_'+id, h) }
+
+// Suplementos del usuario - VACIO por defecto (configura en onboarding)
+function getMySups(){ return S.g('mysups', []) }
+function saveMySups(s){ S.s('mysups', s) }
+
+// ===== BMR / TDEE (Mifflin-St Jeor) =====
+// Calcula Basal Metabolic Rate (calorias en reposo)
+function calcBMR(profile){
+  const p = profile || getProfile();
+  if(!p.age || !p.height || !p.wStart || !p.gender) return null;
+  const weightKg = p.wStart * 0.453592;       // lbs a kg
+  const heightCm = p.height * 2.54;           // inches a cm si usa inches, o ya es cm
+  // Si height viene en cm (> 100), no convertir
+  const h = p.height > 100 ? p.height : p.height * 2.54;
+  const base = 10 * weightKg + 6.25 * h - 5 * p.age;
+  return Math.round(p.gender === 'femenino' ? base - 161 : base + 5);
+}
+
+// Calcula Total Daily Energy Expenditure
+function calcTDEE(profile){
+  const bmr = calcBMR(profile);
+  if(!bmr) return null;
+  const p = profile || getProfile();
+  const act = (typeof ACTIVITY_LEVELS !== 'undefined' && ACTIVITY_LEVELS[p.activity])
+            ? ACTIVITY_LEVELS[p.activity].multiplier : 1.375;
+  return Math.round(bmr * act);
+}
+
+// Calcula target calorico segun meta
+function calBudget(){
+  const p = getProfile();
+  const g = getGoals();
+  const tdee = calcTDEE(p);
+  if(!tdee) return { target:2000, min:1200, max:2500, tdee:null, bmr:null };
+  let target = tdee;
+  if(g.goalType === 'fat_loss')    target = Math.round(tdee * 0.80);   // deficit 20%
+  if(g.goalType === 'muscle_gain') target = Math.round(tdee * 1.10);   // surplus 10%
+  if(g.goalType === 'strength')    target = Math.round(tdee * 1.05);
+  const bmr = calcBMR(p);
+  const floor = p.gender === 'femenino' ? 1200 : 1500;
+  const min = Math.max(floor, bmr || floor);       // nunca bajar del BMR
+  const max = Math.round(tdee * 1.20);
+  return { target, min, max, tdee, bmr };
+}
+
+// ===== MACROS TRACKING =====
+function todayCal(st, dow){
+  st = st || getDay();
+  dow = dow ?? new Date().getDay();
+  if(typeof UserMeals !== 'undefined' && UserMeals.hasCustom()){
+    return UserMeals.calcDayMacros(dow, st).cal;
   }
-  let t=0;
-  MEAL_ORDER.forEach(k=>{if(st.meals[k])t+=getMeal(k,dow).cal});
-  (st.extras||[]).forEach(e=>{const c=Number(e.c);if(!isNaN(c))t+=c});
+  // Fallback: solo extras registrados
+  let t = 0;
+  (st.extras || []).forEach(e => { const c = Number(e.cal) || Number(e.c); if(!isNaN(c)) t += c; });
   return t;
 }
-// Macros totales del dia (cal, p, c, fat, fib)
-function todayMacros(st,dow){
-  st=st||getDay();
-  dow=dow??new Date().getDay();
-  if(typeof UserMeals!=='undefined' && UserMeals.hasCustom()){
-    return UserMeals.calcDayMacros(dow,st);
+
+function todayMacros(st, dow){
+  st = st || getDay();
+  dow = dow ?? new Date().getDay();
+  if(typeof UserMeals !== 'undefined' && UserMeals.hasCustom()){
+    return UserMeals.calcDayMacros(dow, st);
   }
-  // Fallback legacy: estimar macros usando los p/cb/f del plan donde existen
-  const tot={cal:0,p:0,c:0,fat:0,fib:0};
-  MEAL_ORDER.forEach(k=>{
-    if(st.meals[k]){
-      const m=getMeal(k,dow);
-      tot.cal+=m.cal||0;
-      tot.p+=m.p||0;
-      // legacy no tiene carbs/fat por comida, se queda en 0
-    }
+  // Fallback: sumar extras
+  const tot = { cal:0, protein:0, carbs:0, fat:0, fiber:0 };
+  (st.extras || []).forEach(e => {
+    tot.cal     += Number(e.cal)     || Number(e.c) || 0;
+    tot.protein += Number(e.protein) || Number(e.p) || 0;
+    tot.carbs   += Number(e.carbs)   || Number(e.cb) || 0;
+    tot.fat     += Number(e.fat)     || Number(e.f) || 0;
+    tot.fiber   += Number(e.fiber)   || 0;
   });
-  (st.extras||[]).forEach(e=>{
-    tot.cal+=Number(e.c)||0;
-    tot.p+=Number(e.p)||0;
-    tot.c+=Number(e.cb)||0;
-    tot.fat+=Number(e.f)||0;
-  });
-  tot.cal=Math.round(tot.cal);
-  tot.p=Math.round(tot.p*10)/10;
-  tot.c=Math.round(tot.c*10)/10;
-  tot.fat=Math.round(tot.fat*10)/10;
   return tot;
 }
-// Metas de macros (proteina basada en 1.8g/kg peso corporal)
+
+// Metas de macros - calculadas dinamicamente
 function macroTargets(){
-  if(typeof UserMeals!=='undefined') return UserMeals.calcTargets();
-  const bud=calBudget();
-  return{cal:bud.target,p:140,c:220,fat:60,fib:30};
-}
-function canIEat(foodKey,st,dow){
-  const f=FOOD[foodKey];if(!f)return null;
-  const cur=todayCal(st,dow),b=calBudget(),rem=b.target-cur,after=cur+f.c;
-  let ans,msg;
-  if(f.v==='ok'&&after<=b.target){ans='go';msg=`Si! ${f.n} (${f.c} cal) entra perfecto. Te quedan ${rem} cal.`}
-  else if(after>b.max){ans='no';msg=`No recomendado. ${f.n}=${f.c} cal, llevas ${cur}. Te pasarias a ${after} (limite ${b.max}).`}
-  else if(f.v==='bad'){ans='no';msg=`${f.n} tiene ${f.c} cal y no es bueno para tu meta. ${after>b.target?'Ademas te pasas de calorias.':'Caloricamente entra pero no es nutritivo.'}`}
-  else if(after<=b.max){ans='warn';msg=`Puedes pero vas justo. ${f.n}=${f.c} cal. Quedarias en ${after}/${b.target}.`}
-  else{ans='warn';msg=`${f.n}=${f.c} cal. Con moderacion podria estar bien.`}
-  msg+='\n'+f.note;
-  return{ans,msg,food:f,cur,rem,after};
+  if(typeof UserMeals !== 'undefined' && UserMeals.calcTargets){
+    return UserMeals.calcTargets();
+  }
+  const bud = calBudget();
+  return { cal: bud.target, protein:0, carbs:0, fat:0, fiber:25 };
 }
 
-// ===== SMART ENGINE =====
-const Engine={
+// Evaluador "puedo comer X?" - solo si existe FoodDB
+function canIEat(foodKey, st, dow){
+  const f = typeof FOOD !== 'undefined' ? FOOD[foodKey] : null;
+  if(!f) return null;
+  const cur = todayCal(st, dow);
+  const b = calBudget();
+  const rem = b.target - cur;
+  const after = cur + f.c;
+  let ans, msg;
+  if(after <= b.target && f.v === 'ok'){ ans='go'; msg=`Si. ${f.n} (${f.c} cal) entra bien. Quedan ${rem} cal.`; }
+  else if(after > b.max){ ans='no'; msg=`No recomendado. Te pasarias del limite (${after} > ${b.max}).`; }
+  else if(after <= b.max){ ans='warn'; msg=`Puedes, pero ajusta el dia (${after}/${b.target}).`; }
+  else { ans='warn'; msg=`Con moderacion.`; }
+  return { ans, msg, food: f, cur, rem, after };
+}
+
+// ===== SMART ENGINE (analisis) =====
+const Engine = {
   bodyAnalysis(){
-    const w=getWeights(),g=getGoals(),out=[];
-    if(!w.length){out.push({t:'info',i:'⚖️',m:'Registra tu peso para trackear progreso.'});return out}
-    const cur=w[0].weight;
-    if(g.targetWeight&&g.startWeight){
-      const loss=g.startWeight-cur,total=g.startWeight-g.targetWeight,pct=Math.round(loss/total*100);
-      const left=dBetween(new Date(),pk(g.targetDate));
-      if(pct>=100)out.push({t:'ok',i:'🏆',m:`META CUMPLIDA! Llegaste a ${g.targetWeight} lbs!`});
-      else if(left>0){
-        const rate=((cur-g.targetWeight)/(left/7)).toFixed(1);
-        out.push({t:'info',i:'🎯',m:`Llevas ${Math.max(0,loss).toFixed(1)}/${total} lbs. Faltan ${left} dias (~${rate} lbs/sem).`});
-        if(rate>2)out.push({t:'warn',i:'⚠️',m:`${rate} lbs/sem es agresivo. Saludable: 1-2 lbs/sem.`});
+    const w = getWeights(), g = getGoals(), out = [];
+    if(!w.length){
+      out.push({t:'info', i:'⚖️', m:'Registra tu peso para trackear progreso.'});
+      return out;
+    }
+    const cur = w[0].weight;
+    if(g.targetWeight && g.startWeight){
+      const loss = g.startWeight - cur;
+      const total = g.startWeight - g.targetWeight;
+      const pct = total !== 0 ? Math.round(loss / total * 100) : 0;
+      if(g.targetDate){
+        const left = dBetween(new Date(), pk(g.targetDate));
+        if(pct >= 100) out.push({t:'ok', i:'🏆', m:`META CUMPLIDA! Llegaste a ${g.targetWeight} lbs.`});
+        else if(left > 0){
+          const rate = ((cur - g.targetWeight) / (left / 7)).toFixed(1);
+          out.push({t:'info', i:'🎯', m:`Llevas ${Math.max(0,loss).toFixed(1)}/${total} lbs. Faltan ${left} dias (~${rate} lbs/sem).`});
+          if(rate > 2) out.push({t:'warn', i:'⚠️', m:`${rate} lbs/sem es agresivo. Saludable: 0.5-1 lbs/sem.`});
+        }
       }
     }
-    if(w.length>=3){
-      const wk=w.filter(x=>dBetween(pk(x.date),new Date())<=7);
-      if(wk.length>=2){
-        const ch=wk[0].weight-wk[wk.length-1].weight;
-        if(ch>0.5)out.push({t:'warn',i:'📈',m:`+${ch.toFixed(1)} lbs esta semana. Revisa dieta.`});
-        else if(ch<-3)out.push({t:'warn',i:'⚡',m:`-${Math.abs(ch).toFixed(1)} lbs esta semana. Puede ser musculo.`});
-        else if(ch<-0.5)out.push({t:'ok',i:'✅',m:`-${Math.abs(ch).toFixed(1)} lbs esta semana. Buen ritmo!`});
+    if(w.length >= 3){
+      const wk = w.filter(x => dBetween(pk(x.date), new Date()) <= 7);
+      if(wk.length >= 2){
+        const ch = wk[0].weight - wk[wk.length-1].weight;
+        if(ch > 0.5) out.push({t:'warn', i:'📈', m:`+${ch.toFixed(1)} lbs esta semana. Revisa tu plan.`});
+        else if(ch < -3) out.push({t:'warn', i:'⚡', m:`-${Math.abs(ch).toFixed(1)} lbs esta semana. Mucho, puede ser agua/musculo.`});
+        else if(ch < -0.5) out.push({t:'ok', i:'✅', m:`-${Math.abs(ch).toFixed(1)} lbs esta semana. Buen ritmo.`});
       }
-      const tw=w.filter(x=>dBetween(pk(x.date),new Date())<=14);
-      if(tw.length>=4&&Math.max(...tw.map(x=>x.weight))-Math.min(...tw.map(x=>x.weight))<1)
-        out.push({t:'info',i:'📊',m:'Peso estancado 2 semanas. Mas cardio o menos porciones arroz.'});
     }
     return out;
   },
-  exAnalysis(id,nw){
-    const h=getExHist(id),g=EX[id],out=[];
-    if(!h.length)return{out,sug:g.dw};
-    const last=h[0].weight,pr=Math.max(...h.map(x=>x.weight));
-    if(nw>last*1.15)out.push({t:'danger',i:'🚨',m:`+${Math.round((nw-last)/last*100)}% peso! Ultimo: ${last}lbs. Sube gradual (2-5lbs).`});
-    if(nw<last*.75&&nw>0)out.push({t:'warn',i:'📉',m:`Bajaste mucho (${last}→${nw}). Descansaste bien?`});
-    if(nw>pr&&nw>0)out.push({t:'ok',i:'🏆',m:`NUEVO PR! ${nw} lbs (antes: ${pr}).`});
-    if(h.length>=4&&h.slice(0,4).every(x=>x.weight===last)&&nw===last)
-      out.push({t:'info',i:'💡',m:`${h.length+1} sesiones con ${last}lbs. Sube 2-5lbs.`});
-    return{out,sug:last,pr,last:last,lastDate:h[0].date};
+  exAnalysis(id, nw){
+    const h = getExHist(id), out = [];
+    if(!h.length) return { out, sug: nw };
+    const last = h[0].weight, pr = Math.max(...h.map(x => x.weight));
+    if(nw > last * 1.15) out.push({t:'danger', i:'🚨', m:`+${Math.round((nw-last)/last*100)}% peso. Sube gradual (2-5 lbs).`});
+    if(nw < last * .75 && nw > 0) out.push({t:'warn', i:'📉', m:`Bajaste mucho (${last}→${nw}). Todo bien?`});
+    if(nw > pr && nw > 0) out.push({t:'ok', i:'🏆', m:`NUEVO PR! ${nw} lbs.`});
+    return { out, sug: last, pr, last, lastDate: h[0].date };
   },
   mealCheck(){
-    const out=[];let miss=0,tot=0,done=0;
-    for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);const s=getDay(d);
-      const dm=Object.values(s.meals).filter(Boolean).length;if(Object.keys(s.meals).length){tot+=6;done+=dm;if(dm<3)miss++}}
-    if(miss>=3)out.push({t:'warn',i:'🍽️',m:`${miss} dias incompletos. No saltes comidas.`});
-    const pct=tot?Math.round(done/tot*100):0;
-    if(pct<60&&tot)out.push({t:'warn',i:'📉',m:`${pct}% comidas esta semana. Meta: 85%+.`});
-    else if(pct>=90&&tot)out.push({t:'ok',i:'⭐',m:`${pct}% comidas. EXCELENTE!`});
+    const out = [];
+    if(typeof UserMeals === 'undefined' || !UserMeals.hasCustom()) return out;
+    let miss = 0, tot = 0, done = 0;
+    for(let i=1; i<=7; i++){
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const s = getDay(d);
+      const todayMeals = UserMeals.getTodayMeals(d.getDay());
+      if(!todayMeals.length) continue;
+      const dm = Object.values(s.meals).filter(Boolean).length;
+      tot += todayMeals.length;
+      done += dm;
+      if(dm < Math.floor(todayMeals.length / 2)) miss++;
+    }
+    if(miss >= 3) out.push({t:'warn', i:'🍽️', m:`${miss} dias incompletos. No saltes comidas.`});
+    const pct = tot ? Math.round(done/tot*100) : 0;
+    if(pct < 60 && tot) out.push({t:'warn', i:'📉', m:`${pct}% comidas esta semana. Meta: 85%+.`});
+    else if(pct >= 90 && tot) out.push({t:'ok', i:'⭐', m:`${pct}% comidas. EXCELENTE!`});
     return out;
   },
   gymCheck(){
-    const out=[];let days=0;
-    for(let i=1;i<=14;i++){const d=new Date();d.setDate(d.getDate()-i);const s=getDay(d);
-      if(Object.keys(s.exLog).some(k=>{const l=s.exLog[k];return l?.sets?.some(x=>x.done)}))break;days++}
-    if(days>=4&&days<7)out.push({t:'warn',i:'🏋️',m:`${days} dias sin gym. Ve aunque sea 30 min!`});
-    else if(days>=7)out.push({t:'danger',i:'🚨',m:`${days} dias sin entrenar! Ve HOY.`});
+    const out = [];
+    if(typeof UserRoutines === 'undefined' || !UserRoutines.hasCustomConfig()) return out;
+    let days = 0;
+    for(let i=1; i<=14; i++){
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const s = getDay(d);
+      if(Object.keys(s.exLog).some(k => { const l = s.exLog[k]; return l?.sets?.some(x => x.done); })) break;
+      days++;
+    }
+    if(days >= 4 && days < 7) out.push({t:'warn', i:'🏋️', m:`${days} dias sin entrenar. Ve aunque sea 30 min.`});
+    else if(days >= 7) out.push({t:'danger', i:'🚨', m:`${days} dias sin entrenar! Vuelve hoy.`});
     return out;
   },
   waterCheck(){
-    const out=[];let low=0;
-    for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);if(getDay(d).water<3000)low++}
-    if(low>=4)out.push({t:'danger',i:'💧',m:`${low}/7 dias <3L agua. Rinones NECESITAN esa agua!`});
+    const out = [];
+    const settings = getSettings();
+    const target = settings.waterTarget || 2500;
+    const min = target * 0.75;
+    let low = 0;
+    for(let i=1; i<=7; i++){
+      const d = new Date(); d.setDate(d.getDate() - i);
+      if(getDay(d).water < min) low++;
+    }
+    if(low >= 4) out.push({t:'danger', i:'💧', m:`${low}/7 dias con poca agua. Rinones necesitan agua.`});
     return out;
   },
-  allInsights(){return[...this.bodyAnalysis(),...this.mealCheck(),...this.gymCheck(),...this.waterCheck()]},
+  allInsights(){
+    return [...this.bodyAnalysis(), ...this.mealCheck(), ...this.gymCheck(), ...this.waterCheck()];
+  },
   briefing(d=new Date()){
-    const dow=d.getDay(),sch=SCHED[dow],b=[];
-    const h=d.getHours();b.push(h<12?'Buenos dias':'Buenas '+(h<18?'tardes':'noches'));
-    if(sch.g){const r=sch.g==='A'?RUT_A:RUT_B;b.push(`🏋️ ${r.name} (${r.time})`)}
-    else b.push(dow===0?'😴 Descanso total':'🧘 Descanso activo');
-    if(sch.c===true)b.push('🏃 Cardio 6-7 PM');
-    const ms=[];['merienda1','almuerzo','merienda2'].forEach(k=>{const m=getMeal(k,dow);ms.push(`${m.label}: ${m.desc}`)});
-    b.push('📦 '+ms.join(' | '));
-    if(BATCH[dow])b.push(`🍳 BATCH: ${BATCH[dow].t} (${BATCH[dow].e})`);
-    b.push('💧 Meta: 4 litros');
+    const b = [];
+    const h = d.getHours();
+    b.push(h<12 ? 'Buenos dias' : 'Buenas ' + (h<18 ? 'tardes' : 'noches'));
+    const routine = typeof getEffectiveRoutine === 'function' ? getEffectiveRoutine() : null;
+    if(routine) b.push(`🏋️ ${routine.name}`);
+    else b.push('Descanso');
+    const isCardio = typeof isEffectiveCardioDay === 'function' ? isEffectiveCardioDay() : false;
+    if(isCardio) b.push('🏃 Cardio hoy');
+    if(typeof UserMeals !== 'undefined' && UserMeals.hasCustom()){
+      const mealsToday = UserMeals.getTodayMeals(d.getDay());
+      if(mealsToday.length){
+        b.push('🍽️ ' + mealsToday.map(m => `${m.time} ${m.label}`).join(' | '));
+      }
+    }
+    const target = (getSettings().waterTarget || 2500) / 1000;
+    b.push(`💧 Meta: ${target} L`);
     return b;
   },
   tomorrowPreview(){
-    const t=tomorrow(),dow=t.getDay(),sch=SCHED[dow];
-    const meals=MEAL_ORDER.map(k=>({key:k,...getMeal(k,dow)}));
-    const ex=sch.g?(sch.g==='A'?RUT_A:RUT_B):null;
-    const bring=[];
-    ['merienda1','merienda2','almuerzo'].forEach(k=>{const m=getMeal(k,dow);bring.push(`${m.label}: ${m.desc}`)});
-    return{date:t,dayName:DAY_NAMES[dow],meals,ex,cardio:sch.c,batch:BATCH[dow]||null,bring};
+    const t = tomorrow(), dow = t.getDay();
+    const meals = typeof UserMeals !== 'undefined' ? UserMeals.getTodayMeals(dow) : [];
+    const routine = typeof UserRoutines !== 'undefined'
+                  ? UserRoutines.routineToLegacy(UserRoutines.getTodayRoutine(t))
+                  : null;
+    return {
+      date: t,
+      dayName: DAY_NAMES[dow],
+      meals,
+      ex: routine,
+      cardio: typeof UserRoutines !== 'undefined' ? UserRoutines.isCardioDay(t) : false,
+      batch: null,
+      bring: meals.map(m => `${m.label}`)
+    };
   }
 };
 
-// ===== STREAK & GAMIFICATION ENGINE =====
+// ===== STREAK & GAMIFICATION =====
 function getDayScore(d=new Date()){
-  const st=getDay(d),dow=d.getDay(),sch=SCHED[dow];
-  let pts=0,max=0;
-  // Meals (40 pts max)
-  const mealsDone=Object.values(st.meals).filter(Boolean).length;
-  pts+=Math.round(mealsDone/6*40);max+=40;
-  // Water (20 pts max)
-  const wPct=Math.min(1,st.water/4000);
-  pts+=Math.round(wPct*20);max+=20;
-  // Gym (25 pts max) - only if scheduled
-  if(sch.g){
-    const r=sch.g==='A'?RUT_A:RUT_B;
-    let exDone=0,exTotal=0;
-    r.ex.forEach(e=>{const l=st.exLog[e.id];exTotal+=e.s;if(l?.sets)exDone+=l.sets.filter(x=>x.done).length});
-    pts+=Math.round(exDone/Math.max(1,exTotal)*25);max+=25;
+  const st = getDay(d), dow = d.getDay();
+  let pts = 0, max = 0;
+
+  // Comidas (40 pts max) - solo si hay plan configurado
+  if(typeof UserMeals !== 'undefined' && UserMeals.hasCustom()){
+    const mealsToday = UserMeals.getTodayMeals(dow);
+    if(mealsToday.length){
+      const done = Object.values(st.meals).filter(Boolean).length;
+      pts += Math.round(done / mealsToday.length * 40);
+      max += 40;
+    }
   }
-  // Cardio (15 pts max) - only if scheduled
-  if(sch.c===true){pts+=st.cardioDone?15:0;max+=15}
-  return{pts,max,pct:max?Math.round(pts/max*100):0};
+
+  // Agua (20 pts max)
+  const waterTarget = getSettings().waterTarget || 2500;
+  const wPct = Math.min(1, st.water / waterTarget);
+  pts += Math.round(wPct * 20); max += 20;
+
+  // Gym (25 pts max) - solo si hay rutina hoy
+  const routine = typeof UserRoutines !== 'undefined' ? UserRoutines.getTodayRoutine(d) : null;
+  if(routine && routine.exercises && routine.exercises.length){
+    let exDone = 0, exTotal = 0;
+    routine.exercises.forEach(e => {
+      exTotal += e.sets || 0;
+      const l = st.exLog[e.exKey];
+      if(l?.sets) exDone += l.sets.filter(x => x.done).length;
+    });
+    if(exTotal > 0){
+      pts += Math.round(exDone / exTotal * 25);
+      max += 25;
+    }
+  }
+
+  // Cardio (15 pts max) - solo si es dia de cardio
+  if(typeof UserRoutines !== 'undefined' && UserRoutines.isCardioDay(d)){
+    pts += st.cardioDone ? 15 : 0;
+    max += 15;
+  }
+
+  return { pts, max, pct: max ? Math.round(pts/max*100) : 0 };
 }
 
-const Streaks={
-  // Calculate current streak (consecutive days with score ≥ 60%)
+const Streaks = {
   getCurrent(){
-    let streak=0;
-    for(let i=1;i<=365;i++){
-      const d=new Date();d.setDate(d.getDate()-i);
-      const sc=getDayScore(d);
-      if(sc.pct>=60)streak++;else break;
+    let streak = 0;
+    for(let i=1; i<=365; i++){
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const sc = getDayScore(d);
+      if(sc.max === 0) break;          // si no hay plan configurado, cortar
+      if(sc.pct >= 60) streak++;
+      else break;
     }
     return streak;
   },
-  // Get best streak ever
   getBest(){
-    const saved=S.g('bestStreak',0);
-    const cur=this.getCurrent();
-    if(cur>saved){S.s('bestStreak',cur)}
-    return Math.max(saved,cur);
+    const saved = S.g('bestStreak', 0);
+    const cur = this.getCurrent();
+    if(cur > saved) S.s('bestStreak', cur);
+    return Math.max(saved, cur);
   },
-  // Get total XP (sum of all daily scores * 10)
-  getXP(){return S.g('totalXP',0)},
-  // Add XP for today (called once per day)
+  getXP(){ return S.g('totalXP', 0); },
   addDailyXP(){
-    const today=dk();
-    if(S.g('lastXPDay')===today)return;
-    // Calculate yesterday's score
-    const y=new Date();y.setDate(y.getDate()-1);
-    const sc=getDayScore(y);
-    const xp=sc.pts*10;
-    S.s('totalXP',(S.g('totalXP',0))+xp);
-    S.s('lastXPDay',today);
+    const today = dk();
+    if(S.g('lastXPDay') === today) return;
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const sc = getDayScore(y);
+    const xp = sc.pts * 10;
+    S.s('totalXP', (S.g('totalXP', 0)) + xp);
+    S.s('lastXPDay', today);
   },
-  // Get level from XP
-  getLevel(){
-    const xp=this.getXP();
-    return Math.floor(xp/500)+1;
-  },
-  // XP progress to next level
+  getLevel(){ return Math.floor(this.getXP() / 500) + 1; },
   getLevelProgress(){
-    const xp=this.getXP();
-    const inLevel=xp%500;
-    return{current:inLevel,needed:500,pct:Math.round(inLevel/500*100)};
+    const xp = this.getXP();
+    const inLevel = xp % 500;
+    return { current: inLevel, needed: 500, pct: Math.round(inLevel/500*100) };
   },
-  // Level titles
   getLevelTitle(){
-    const lv=this.getLevel();
-    if(lv>=20)return'Leyenda';if(lv>=15)return'Master';if(lv>=10)return'Veterano';
-    if(lv>=7)return'Guerrero';if(lv>=5)return'Dedicado';if(lv>=3)return'Constante';
-    return'Novato';
+    const lv = this.getLevel();
+    if(lv >= 20) return 'Leyenda';
+    if(lv >= 15) return 'Master';
+    if(lv >= 10) return 'Veterano';
+    if(lv >= 7)  return 'Guerrero';
+    if(lv >= 5)  return 'Dedicado';
+    if(lv >= 3)  return 'Constante';
+    return 'Novato';
   },
-  // Check achievements/badges
   getBadges(){
-    const badges=[];
-    const streak=this.getCurrent();
-    const best=this.getBest();
-    const lv=this.getLevel();
-    // Streak badges
-    if(streak>=3)badges.push({id:'s3',icon:'🔥',name:'3 dias seguidos',desc:'Racha de 3 dias',tier:'bronze'});
-    if(streak>=7)badges.push({id:'s7',icon:'⚡',name:'Semana perfecta',desc:'7 dias sin fallar',tier:'silver'});
-    if(streak>=14)badges.push({id:'s14',icon:'💎',name:'2 semanas',desc:'14 dias de disciplina',tier:'gold'});
-    if(streak>=30)badges.push({id:'s30',icon:'👑',name:'Mes completo',desc:'30 dias seguidos!',tier:'platinum'});
-    if(best>=7&&streak<7)badges.push({id:'b7',icon:'🏅',name:'Ex-guerrero',desc:`Tu mejor racha: ${best} dias`,tier:'bronze'});
-    // Level badges
-    if(lv>=5)badges.push({id:'l5',icon:'🎖️',name:'Dedicado',desc:'Nivel 5 alcanzado',tier:'silver'});
-    if(lv>=10)badges.push({id:'l10',icon:'🏆',name:'Veterano',desc:'Nivel 10 alcanzado',tier:'gold'});
-    // Special checks
-    let waterDays=0;for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);if(getDay(d).water>=4000)waterDays++}
-    if(waterDays>=7)badges.push({id:'w7',icon:'💧',name:'Hidratado',desc:'7 dias con 4L+',tier:'silver'});
-    let gymDays=0;for(let i=1;i<=7;i++){const d=new Date();d.setDate(d.getDate()-i);const s=getDay(d);
-      if(Object.keys(s.exLog).some(k=>s.exLog[k]?.sets?.some(x=>x.done)))gymDays++}
-    if(gymDays>=5)badges.push({id:'g5',icon:'🏋️',name:'Maquina',desc:'5 dias de gym esta semana',tier:'gold'});
+    const badges = [];
+    const streak = this.getCurrent();
+    const best = this.getBest();
+    const lv = this.getLevel();
+    if(streak >= 3)  badges.push({id:'s3',  icon:'🔥', name:'3 dias seguidos',  tier:'bronze'});
+    if(streak >= 7)  badges.push({id:'s7',  icon:'⚡', name:'Semana perfecta',   tier:'silver'});
+    if(streak >= 14) badges.push({id:'s14', icon:'💎', name:'2 semanas',         tier:'gold'});
+    if(streak >= 30) badges.push({id:'s30', icon:'👑', name:'Mes completo',      tier:'platinum'});
+    if(best >= 7 && streak < 7) badges.push({id:'b7', icon:'🏅', name:'Ex-guerrero', tier:'bronze'});
+    if(lv >= 5)  badges.push({id:'l5',  icon:'🎖️', name:'Nivel 5',  tier:'silver'});
+    if(lv >= 10) badges.push({id:'l10', icon:'🏆', name:'Nivel 10', tier:'gold'});
     return badges;
   },
-  // Get motivational message based on streak
   getMotivation(){
-    const s=this.getCurrent();
-    if(s===0)return'Hoy es el dia 1. Empieza tu racha!';
-    if(s<3)return`${s} dia${s>1?'s':''} seguido${s>1?'s':''}. No rompas la cadena!`;
-    if(s<7)return`${s} dias! Estas construyendo un habito. Sigue asi!`;
-    if(s<14)return`${s} dias de racha! Ya eres constante. Brutal!`;
-    if(s<30)return`${s} dias! Estas en otro nivel. Eres disciplina pura!`;
-    return`${s} DIAS! Eres una leyenda. Nadie te para!`;
+    const s = this.getCurrent();
+    if(s === 0)  return 'Hoy es el dia 1. Empieza tu racha.';
+    if(s < 3)    return `${s} dia${s>1?'s':''} seguido${s>1?'s':''}. No rompas la cadena.`;
+    if(s < 7)    return `${s} dias. Estas construyendo un habito.`;
+    if(s < 14)   return `${s} dias de racha. Ya eres constante.`;
+    if(s < 30)   return `${s} dias. Estas en otro nivel.`;
+    return `${s} dias. Eres una leyenda.`;
   },
-  // Weekly scores for chart
   getWeekScores(){
-    const scores=[];
-    for(let i=6;i>=0;i--){
-      const d=new Date();d.setDate(d.getDate()-i);
-      const sc=getDayScore(d);
-      scores.push({date:dk(d),day:DAY_SHORT[d.getDay()],score:sc.pct,pts:sc.pts});
+    const scores = [];
+    for(let i=6; i>=0; i--){
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const sc = getDayScore(d);
+      scores.push({ date: dk(d), day: DAY_SHORT[d.getDay()], score: sc.pct, pts: sc.pts });
+    }
+    return scores;
+  },
+  // NUEVO v2.0: scores por mes
+  getMonthScores(){
+    const scores = [];
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    for(let day=1; day<=daysInMonth; day++){
+      const d = new Date(now.getFullYear(), now.getMonth(), day);
+      if(d > now) break;
+      const sc = getDayScore(d);
+      scores.push({ date: dk(d), day, score: sc.pct, pts: sc.pts });
+    }
+    return scores;
+  },
+  // NUEVO v2.0: scores por ano (promedio por mes)
+  getYearScores(){
+    const scores = [];
+    const now = new Date();
+    for(let month=0; month<=now.getMonth(); month++){
+      let total = 0, count = 0;
+      const daysInMonth = new Date(now.getFullYear(), month+1, 0).getDate();
+      for(let day=1; day<=daysInMonth; day++){
+        const d = new Date(now.getFullYear(), month, day);
+        if(d > now) break;
+        const sc = getDayScore(d);
+        if(sc.max > 0){ total += sc.pct; count++; }
+      }
+      scores.push({
+        month, name: MONTHS_SHORT ? MONTHS_SHORT[month] : MONTHS[month].slice(0,3),
+        score: count ? Math.round(total/count) : 0, days: count
+      });
     }
     return scores;
   }
 };
 
-// ===== NOTIFICATIONS =====
-const Notif={
-  ok:false,
-  _isLogged(){return typeof Auth!=='undefined'&&Auth.isLoggedIn&&Auth.isLoggedIn()},
+// ===== NOTIFICACIONES (basadas en horarios del usuario) =====
+const Notif = {
+  ok: false,
+  _isLogged(){ return typeof Auth !== 'undefined' && Auth.isLoggedIn && Auth.isLoggedIn(); },
   async init(){
-    // No pedir permiso ni activar si no hay sesion
-    if(!this._isLogged())return;
-    if('Notification'in window){
-      if(Notification.permission==='granted')this.ok=true;
-      else if(Notification.permission!=='denied'){this.ok=(await Notification.requestPermission())==='granted'}
+    if(!this._isLogged()) return;
+    if('Notification' in window){
+      if(Notification.permission === 'granted') this.ok = true;
+      else if(Notification.permission !== 'denied'){
+        this.ok = (await Notification.requestPermission()) === 'granted';
+      }
     }
   },
-  send(t,b,tag='g'){
-    if(!this._isLogged())return;
-    if(!this.ok)return;
-    try{new Notification(t,{body:b,tag,renotify:true})}catch(e){
-      navigator.serviceWorker?.ready?.then(r=>r.showNotification(t,{body:b,tag,renotify:true}))}
+  send(t, b, tag='g'){
+    if(!this._isLogged() || !this.ok) return;
+    try { new Notification(t, { body: b, tag, renotify: true }); }
+    catch(e){ navigator.serviceWorker?.ready?.then(r => r.showNotification(t, {body:b, tag, renotify:true})); }
   },
+  // Parse "HH:MM" a minutos desde medianoche
+  _timeToMin(hhmm){
+    if(!hhmm || typeof hhmm !== 'string') return -1;
+    const [h, m] = hhmm.split(':').map(Number);
+    if(isNaN(h) || isNaN(m)) return -1;
+    return h * 60 + m;
+  },
+  // Check se llama cada minuto - dispara notificaciones basadas en horarios del USUARIO
   check(){
-    // Early return si no hay sesion
-    if(!this._isLogged())return;
-    const n=new Date(),h=n.getHours(),m=n.getMinutes(),t=h*60+m,set=getSettings(),st=getDay(),dow=n.getDay(),sch=SCHED[dow];
-    const sent=k=>{const sk=`fr_n_${k}_${dk()}`;if(S.g(sk))return true;S.s(sk,true);return false};
-    if(set.morning&&t>=360&&t<362&&!sent('am'))this.send('Buenos dias! ☀️',Engine.briefing()[1]);
-    if(set.gym&&sch.g&&t>=285&&t<287&&!sent('gym'))this.send('🏋️ Gym en 15 min!','Preparate!');
-    if(set.meal){
-      if(t>=590&&t<592&&!st.meals.merienda1&&!sent('m1'))this.send('🍌 Merienda 1',getMeal('merienda1',dow).desc);
-      if(t>=710&&t<712&&!st.meals.almuerzo&&!sent('al'))this.send('🍽️ Almorzar',getMeal('almuerzo',dow).desc);
-      if(t>=980&&t<982&&!st.meals.merienda2&&!sent('m2'))this.send('🍎 Merienda 2',getMeal('merienda2',dow).desc);
-      if(t>=1220&&t<1222&&!st.meals.cena&&!sent('ce'))this.send('🌙 Cenar',getMeal('cena',dow).desc);
-      if(t>=1285&&t<1287&&!st.meals.fibra&&!sent('fi'))this.send('🥤 Fibra!','No olvides antes de dormir');
+    if(!this._isLogged()) return;
+    const now = new Date();
+    const curMin = now.getHours() * 60 + now.getMinutes();
+    const set = getSettings();
+    const st = getDay();
+    const dow = now.getDay();
+    const sent = k => {
+      const sk = `n_${k}_${dk()}`;
+      if(S.g(sk)) return true;
+      S.s(sk, true);
+      return false;
+    };
+    const inWindow = (targetMin) => targetMin >= 0 && curMin >= targetMin && curMin < targetMin + 2;
+
+    // Briefing matutino (hora del usuario)
+    if(set.morning){
+      const t = this._timeToMin(set.morningTime);
+      if(inWindow(t) && !sent('am')){
+        const b = Engine.briefing();
+        this.send('Buenos dias ☀️', b[1] || 'Tu plan de hoy');
+      }
     }
-    if(set.water)for(let wh=8;wh<=20;wh+=2)if(t>=wh*60&&t<wh*60+2&&st.water<4000&&!sent(`w${wh}`))
-      this.send('💧 Agua!',`Llevas ${(st.water/1000).toFixed(1)}L. Faltan ${((4000-st.water)/1000).toFixed(1)}L.`);
-    if(set.gym&&sch.c===true&&t>=1065&&t<1067&&!st.cardioDone&&!sent('cd'))this.send('🏃 Cardio!','En 15 min. A quemar grasa!');
-    if(set.sleep&&t>=1305&&t<1307&&!sent('sl'))this.send('😴 A dormir','En 15 min en cama. Descanso = quemar grasa.');
+
+    // Comidas - iterar sobre las del usuario
+    if(set.meal && typeof UserMeals !== 'undefined'){
+      const mealsToday = UserMeals.getTodayMeals(dow);
+      mealsToday.forEach(meal => {
+        const t = this._timeToMin(meal.time);
+        if(inWindow(t) && !st.meals[meal.id] && !sent('m_'+meal.id)){
+          this.send(`🍽️ ${meal.label}`, `Hora de ${meal.label.toLowerCase()}`);
+        }
+      });
+    }
+
+    // Gym (15 min antes de hora definida por usuario - o default si no)
+    if(set.gym && typeof UserRoutines !== 'undefined'){
+      const routine = UserRoutines.getTodayRoutine(now);
+      if(routine && routine.time){
+        const gymMin = this._timeToMin(routine.time);
+        if(gymMin >= 0){
+          const alertMin = gymMin - 15;
+          if(inWindow(alertMin) && !sent('gym')){
+            this.send('🏋️ Gym en 15 min', routine.name);
+          }
+        }
+      }
+    }
+
+    // Cardio
+    if(set.gym && typeof UserRoutines !== 'undefined' && UserRoutines.isCardioDay(now)){
+      const cfg = UserRoutines.getCardioConfig();
+      if(cfg.time){
+        const t = this._timeToMin(cfg.time);
+        if(inWindow(t - 15) && !st.cardioDone && !sent('cd')){
+          this.send('🏃 Cardio', 'En 15 min');
+        }
+      }
+    }
+
+    // Agua - cada N horas entre las 8 AM y 8 PM
+    if(set.water){
+      const waterTarget = set.waterTarget || 2500;
+      const every = set.waterEvery || 2;
+      for(let h=8; h<=20; h+=every){
+        if(inWindow(h*60) && st.water < waterTarget && !sent(`w${h}`)){
+          const left = (waterTarget - st.water) / 1000;
+          this.send('💧 Hora de agua', `Llevas ${(st.water/1000).toFixed(1)}L. Faltan ${left.toFixed(1)}L.`);
+        }
+      }
+    }
+
+    // Dormir (hora del usuario)
+    if(set.sleep){
+      const t = this._timeToMin(set.sleepTime);
+      if(inWindow(t - 15) && !sent('sl')){
+        this.send('😴 A dormir en 15 min', 'Descansar = recuperacion + quema de grasa');
+      }
+    }
   }
 };
