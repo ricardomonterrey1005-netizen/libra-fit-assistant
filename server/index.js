@@ -77,13 +77,23 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/errors', require('./routes/errors'));
 app.use('/api/chat', require('./routes/chat'));
 
-// ===== HEALTH CHECK =====
+// ===== HEALTH CHECK + ENV INFO =====
 app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
-    server: 'Libra Fit Assistant v1.0',
+    server: 'Libra Fit Assistant v2.1',
+    environment: process.env.ENVIRONMENT || 'production',
+    supabase: !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY),
     uptime: Math.round(process.uptime()),
     timestamp: new Date().toISOString()
+  });
+});
+
+// Endpoint publico para que el frontend sepa en que ambiente esta
+app.get('/api/env', (req, res) => {
+  res.json({
+    environment: process.env.ENVIRONMENT || 'production',
+    version: '2.1.0'
   });
 });
 

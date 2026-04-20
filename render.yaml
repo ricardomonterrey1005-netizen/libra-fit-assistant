@@ -1,13 +1,72 @@
+# render.yaml - Configuracion de deploys para Render.com
+#
+# 2 servicios:
+#   1. Produccion:  libra-fit-app        (branch: master)
+#   2. Staging:     libra-fit-staging    (branch: staging)
+#
+# Ambos servicios comparten el mismo codebase pero:
+#  - Staging lee/escribe en Supabase bucket 'librafit-staging' (datos separados)
+#  - Staging muestra banner "STAGING" en la UI
+#  - Staging permite probar cambios antes de promoverlos a produccion
+#
+# Flow de trabajo:
+#   1. Codear en local
+#   2. git push origin staging  -> auto-deploy a libra-fit-staging
+#   3. Probar en staging.onrender.com
+#   4. Si OK: git checkout master && git merge staging && git push
+#   5. Auto-deploy a produccion
+
 services:
+  # ===== PRODUCCION =====
   - type: web
-    name: libra-fit-assistant
+    name: libra-fit-app
     runtime: node
+    branch: master
     buildCommand: cd server && npm install
     startCommand: node server/index.js
     envVars:
       - key: NODE_ENV
         value: production
+      - key: ENVIRONMENT
+        value: production
+      - key: PORT
+        value: 3001
+      - key: ADMIN_PASSWORD
+        sync: false                   # Se setea en Render Dashboard
+      - key: FR_SECRET
+        sync: false                   # Para encriptacion - MANTENER SECRETO
+      - key: FR_JWT_SECRET
+        sync: false                   # Para JWT - MANTENER SECRETO
+      - key: SUPABASE_URL
+        sync: false                   # URL de proyecto Supabase
+      - key: SUPABASE_SERVICE_KEY
+        sync: false                   # service_role key - SECRETO
+      - key: SUPABASE_BUCKET
+        value: librafit-data          # Bucket de produccion
+
+  # ===== STAGING =====
+  - type: web
+    name: libra-fit-staging
+    runtime: node
+    branch: staging
+    buildCommand: cd server && npm install
+    startCommand: node server/index.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ENVIRONMENT
+        value: staging                # Clave para banner visual
       - key: PORT
         value: 3001
       - key: ADMIN_PASSWORD
         sync: false
+      - key: FR_SECRET
+        sync: false                   # Puede ser el mismo o distinto
+      - key: FR_JWT_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false                   # Mismo proyecto Supabase
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: librafit-staging       # Bucket SEPARADO - datos aislados

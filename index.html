@@ -143,6 +143,11 @@
 </div>
 
 <!-- APP SHELL -->
+<!-- Banner staging (se muestra solo si environment=staging) -->
+<div class="staging-banner hide" id="stagingBanner">
+  🧪 STAGING · Datos de prueba separados de produccion
+</div>
+
 <div class="app hide" id="appShell">
   <!-- PAGES CONTAINER (swipeable) -->
   <div class="pages-wrapper" id="pagesWrapper">
@@ -437,6 +442,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   // Limpiar cualquier rastro legacy de guest mode
   localStorage.removeItem('fr_offline');
+
+  // v2.1: detectar si estamos en staging y mostrar banner
+  fetch('/api/env').then(r => r.json()).then(info => {
+    if(info.environment === 'staging'){
+      document.body.classList.add('staging-mode');
+      document.getElementById('stagingBanner').classList.remove('hide');
+      document.title = '🧪 STAGING · Libra Fit';
+    }
+  }).catch(() => {});
 });
 
 // Listen for auth changes

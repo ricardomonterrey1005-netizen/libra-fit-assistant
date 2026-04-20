@@ -913,3 +913,23 @@ input[type=number] { -moz-appearance: textfield }
 }
 .quick-menu-item:hover { background: var(--bg3); }
 .quick-menu-item .qm-icon { font-size: 18px; }
+
+/* ===== STAGING BANNER (v2.1) ===== */
+.staging-banner {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--yellow);
+  color: #000;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  z-index: 1000;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+}
+.staging-banner.hide { display: none; }
+/* Cuando staging esta activo, ajustar el app shell */
+body.staging-mode .app { margin-top: 0; }
