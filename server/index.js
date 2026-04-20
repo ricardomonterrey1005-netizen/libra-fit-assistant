@@ -111,29 +111,41 @@ app.use((err, req, res, next) => {
 });
 
 // ===== START =====
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('');
-  console.log('  ╔══════════════════════════════════════════╗');
-  console.log('  ║   LIBRA FIT ASSISTANT - SECURE SERVER v1.0        ║');
-  console.log('  ╠══════════════════════════════════════════╣');
-  console.log(`  ║   Local:   http://localhost:${PORT}          ║`);
-  console.log('  ║   Network: http://0.0.0.0:' + PORT + '          ║');
-  console.log('  ╠══════════════════════════════════════════╣');
-  console.log('  ║   Security:                              ║');
-  console.log('  ║   - JWT Authentication                   ║');
-  console.log('  ║   - Encrypted Database                   ║');
-  console.log('  ║   - Rate Limiting                        ║');
-  console.log('  ║   - Audit Logging                        ║');
-  console.log('  ║   - Helmet Security Headers              ║');
-  console.log('  ║   - CORS Protection                      ║');
-  console.log('  ╚══════════════════════════════════════════╝');
-  console.log('');
+async function startServer() {
+  // v2.1: Si hay Supabase configurado, restaurar datos del disco efimero
+  if(typeof db.init === 'function'){
+    await db.init();
+  }
 
-  db.log({
-    action: 'server_start',
-    detail: `Server started on port ${PORT}`,
-    status: 'completed'
+  const env = process.env.ENVIRONMENT || 'production';
+  const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY);
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('  ╔══════════════════════════════════════════╗');
+    console.log('  ║   LIBRA FIT ASSISTANT - v2.1              ║');
+    console.log('  ╠══════════════════════════════════════════╣');
+    console.log(`  ║   Local:   http://localhost:${PORT}          ║`);
+    console.log('  ║   Network: http://0.0.0.0:' + PORT + '          ║');
+    console.log(`  ║   ENV:     ${env.padEnd(31)} ║`);
+    console.log(`  ║   SUPABASE:${(hasSupabase?' SI (persistente)':' NO (efimero!)').padEnd(31)} ║`);
+    console.log('  ╠══════════════════════════════════════════╣');
+    console.log('  ║   Security: JWT + bcrypt + AES256 +       ║');
+    console.log('  ║             rate limit + helmet + CORS    ║');
+    console.log('  ╚══════════════════════════════════════════╝');
+    console.log('');
+
+    db.log({
+      action: 'server_start',
+      detail: `Server started on port ${PORT} (env=${env}, supabase=${hasSupabase})`,
+      status: 'completed'
+    });
   });
+}
+
+startServer().catch(e => {
+  console.error('Startup failed:', e);
+  process.exit(1);
 });
 
 module.exports = app;

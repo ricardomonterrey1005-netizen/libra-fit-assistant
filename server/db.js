@@ -1,11 +1,13 @@
 // ================================================================
-//  FITRICARDO - SECURE JSON DATABASE
-//  Archivo encriptado con acceso solo via API autenticada
+//  LIBRA FIT - SECURE DATABASE
+//  JSON encriptado localmente + sincronizacion con Supabase Storage
+//  (para persistencia real en Render Free tier con disco efimero)
 // ================================================================
 
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const supaStorage = require('./storage-supabase');
 
 const DB_DIR = path.join(__dirname, 'data');
 const DB_FILE = path.join(DB_DIR, 'database.json');
@@ -13,7 +15,7 @@ const AUDIT_FILE = path.join(DB_DIR, 'audit.json');
 const USERS_FILE = path.join(DB_DIR, 'users.json');
 
 // Encryption key derivado del environment
-const ENC_KEY = process.env.FR_SECRET || 'fitricardo-secure-key-2026-change-in-production';
+const ENC_KEY = process.env.FR_SECRET || 'librafit-secure-key-2026-change-in-production';
 const ALGORITHM = 'aes-256-cbc';
 
 function getKey() {
@@ -65,6 +67,43 @@ function writeFile(filepath, data) {
   const json = JSON.stringify(data, null, 2);
   const encrypted = encrypt(json);
   fs.writeFileSync(filepath, encrypted, 'utf8');
+  // Sync a Supabase (fire-and-forget)
+  if(supaStorage.isEnabled()){
+    const filename = path.basename(filepath);
+    supaStorage.upload(filename, encrypted).catch(e =>
+      console.warn(`[DB] Supabase sync failed for ${filename}:`, e.message)
+    );
+  }
+}
+
+// Restaurar desde Supabase si el disco esta vacio (arrancamos limpio)
+async function restoreFromSupabase() {
+  if(!supaStorage.isEnabled()){
+    console.log('[DB] Supabase NOT configured - usando solo disco efimero.');
+    console.log('[DB] ADVERTENCIA: datos se perderan en cada reinicio de Render.');
+    return false;
+  }
+  console.log('[DB] Supabase detectado. Intentando restaurar datos...');
+  await supaStorage.ensureBucket();
+  const files = ['database.json', 'users.json', 'audit.json'];
+  let restored = 0;
+  for(const filename of files){
+    const filepath = path.join(DB_DIR, filename);
+    const diskSize = fs.existsSync(filepath) ? fs.statSync(filepath).size : 0;
+    // Solo descargar si el disco esta vacio o no existe
+    if(diskSize < 10){
+      const content = await supaStorage.download(filename);
+      if(content){
+        fs.writeFileSync(filepath, content, 'utf8');
+        restored++;
+        console.log(`[DB] Restaurado ${filename} desde Supabase (${content.length} bytes)`);
+      }
+    } else {
+      console.log(`[DB] ${filename} existe en disco (${diskSize} bytes) - no restaurar`);
+    }
+  }
+  if(restored > 0) console.log(`[DB] Restore completo: ${restored} archivos recuperados.`);
+  return restored > 0;
 }
 
 // ===== DATABASE CLASS =====
@@ -74,6 +113,22 @@ class Database {
     this.users = readFile(USERS_FILE, []);
     this.audit = readFile(AUDIT_FILE, []);
     this._saveTimer = null;
+    this._supaReady = false;
+  }
+
+  // Llamar despues de async init (restoreFromSupabase)
+  async init() {
+    if(supaStorage.isEnabled()){
+      const restored = await restoreFromSupabase();
+      if(restored){
+        // Re-leer archivos del disco ahora que fueron restaurados
+        this.data = readFile(DB_FILE, {});
+        this.users = readFile(USERS_FILE, []);
+        this.audit = readFile(AUDIT_FILE, []);
+      }
+      this._supaReady = true;
+    }
+    return this;
   }
 
   // Debounced save to prevent excessive writes
