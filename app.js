@@ -16,9 +16,17 @@ const App={
     this.setupNav();
     setInterval(()=>Notif.check(),60000);
     Notif.check();
-    const p0=getProfile();
-    if(!p0.name){setTimeout(()=>this.showOnboarding(),400)}
-    else if(!S.g('onb')){setTimeout(()=>this.modal('👋 Bienvenido!',`<p>Tu coach personal inteligente.</p><ul><li>Te dice que comer y cuando</li><li>Trackea ejercicios con pesos</li><li>Alertas y recordatorios</li><li>Te avisa si algo no va bien</li></ul><p><b>Instalar en celular:</b> Chrome → Menu → Agregar a pantalla</p>`),400);S.s('onb',1)}
+    // v2.0: Onboarding conversacional se dispara desde authUI.showApp.
+    // Dejamos aqui el modal de bienvenida solo como fallback ocasional.
+    if(!S.g('onb')){
+      // Solo mostrar el modal de bienvenida si el onboarding v2 NO va a dispararse
+      // (es decir, si ya hay profile.name). En otros casos Onboarding.start() se encarga.
+      const p0 = getProfile();
+      if(p0.name){
+        setTimeout(()=>this.modal('👋 Bienvenido!',`<p>Tu coach personal inteligente.</p><ul><li>Plan de comidas personalizado</li><li>Tracking de ejercicios y pesos</li><li>Alertas y recordatorios a tus horas</li><li>Libra Chat y Coach inteligentes</li></ul><p><b>Instalar:</b> Chrome → Menu → Agregar a pantalla</p>`),400);
+        S.s('onb',1);
+      }
+    }
   },
 
   // ===== ONBOARDING (first-time setup) =====
