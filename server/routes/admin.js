@@ -109,6 +109,85 @@ router.get('/audit', (req, res) => {
   res.json({ ok: true, total: logs.length, logs });
 });
 
+// ===== GET /api/admin/versions =====
+// v2.1: Lista los ultimos 30 commits para UI de rollback
+router.get('/versions', (req, res) => {
+  if (!checkPass(req.query.password)) {
+    return res.status(401).json({ error: 'Contrasena admin incorrecta.' });
+  }
+
+  const { exec } = require('child_process');
+  const path = require('path');
+  const repoDir = path.join(__dirname, '..', '..');
+
+  // Formato: hash|author|date|message (separado por |)
+  const cmd = 'git log --pretty=format:"%H|%h|%an|%ai|%s" -n 30';
+
+  exec(cmd, { cwd: repoDir, maxBuffer: 500000 }, (err, stdout) => {
+    if(err){
+      return res.status(500).json({
+        error: 'No se puede leer git log. Render puede no tener .git en el build.',
+        details: err.message
+      });
+    }
+    const lines = stdout.trim().split('\n').filter(Boolean);
+    const commits = lines.map(line => {
+      const [fullHash, shortHash, author, date, ...messageParts] = line.split('|');
+      return {
+        hash: fullHash,
+        shortHash,
+        author,
+        date,
+        message: messageParts.join('|'),
+        isCurrent: false  // Se marca abajo
+      };
+    });
+
+    // Marcar el commit actual (HEAD)
+    exec('git rev-parse HEAD', { cwd: repoDir }, (err2, head) => {
+      const currentHash = err2 ? '' : head.trim();
+      commits.forEach(c => { if(c.hash === currentHash) c.isCurrent = true; });
+
+      res.json({
+        ok: true,
+        currentHash,
+        environment: process.env.ENVIRONMENT || 'production',
+        commits
+      });
+    });
+  });
+});
+
+// ===== GET /api/admin/version-info =====
+// Informacion extendida del deploy actual
+router.get('/version-info', (req, res) => {
+  if (!checkPass(req.query.password)) {
+    return res.status(401).json({ error: 'Contrasena admin incorrecta.' });
+  }
+
+  const { execSync } = require('child_process');
+  const path = require('path');
+  const repoDir = path.join(__dirname, '..', '..');
+
+  let hash = 'unknown', branch = 'unknown', date = 'unknown';
+  try {
+    hash = execSync('git rev-parse HEAD', { cwd: repoDir }).toString().trim();
+    branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: repoDir }).toString().trim();
+    date = execSync(`git show -s --format=%ai ${hash}`, { cwd: repoDir }).toString().trim();
+  } catch(e) {}
+
+  res.json({
+    ok: true,
+    hash,
+    shortHash: hash.slice(0, 7),
+    branch,
+    date,
+    environment: process.env.ENVIRONMENT || 'production',
+    supabase: !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY),
+    uptime: Math.round(process.uptime())
+  });
+});
+
 // ===== POST /api/admin/export-users =====
 // Returns a JSON backup of users (metadata only) for download
 router.post('/export-users', (req, res) => {

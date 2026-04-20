@@ -35,7 +35,7 @@ Referencias obligatorias antes de features nuevos:
 ## Proyecto
 
 **Nombre:** Libra Fit Assistant
-**Version:** 2.0.0
+**Version:** 2.1.0
 **Tipo:** PWA (Progressive Web App) - Coach de fitness con IA
 **Usuario:** Ricardo Monterrey (Panama)
 **Idioma UI:** Espanol (todo en espanol, sin excepciones)
@@ -178,6 +178,33 @@ FitRicardo/
 6. **Mobile First:** Disenar primero para celular (375px), luego desktop
 7. **ACTUALIZACION OBLIGATORIA:** Al hacer cualquier cambio, actualizar CLAUDE.md y DEVELOPMENT.md
 8. **Deploy:** Tras cambios, hacer commit + push a master. Render auto-deploya.
+
+## Novedades v2.1 (infra)
+
+### Persistencia real (Supabase Storage)
+- **Problema critico resuelto**: Render Free tiene disco efimero, perdiamos
+  datos en cada restart. Cuenta creada se perdia al rato.
+- **Solucion**: `server/storage-supabase.js` sincroniza los JSON encriptados
+  con Supabase Storage (gratis, 1GB). Fallback graceful a disco si no
+  hay env vars.
+- `server/db.js` modificado: writeFile() sube async a Supabase, init()
+  descarga si disco vacio.
+- Env vars requeridas: SUPABASE_URL, SUPABASE_SERVICE_KEY, SUPABASE_BUCKET
+- Setup completo en SUPABASE_SETUP.md
+
+### Staging environment
+- `render.yaml` con 2 servicios: libra-fit-app (master) + libra-fit-staging (staging)
+- Datos aislados por bucket Supabase distinto
+- Banner amarillo "🧪 STAGING" en UI si ENVIRONMENT=staging
+- Endpoint /api/env para que frontend detecte ambiente
+- Guia completa en STAGING.md
+
+### Rollback UI en admin panel
+- Endpoint /api/admin/versions lista ultimos 30 commits via git log
+- Endpoint /api/admin/version-info muestra deploy actual (hash, branch, uptime)
+- Admin panel seccion "Control de Versiones" con tabla de commits
+- Boton "Rollback" copia comando git al portapapeles (safe o destructive)
+- Marca commit actual como "▶ ACTUAL"
 
 ## Novedades v2.0 (MAJOR)
 

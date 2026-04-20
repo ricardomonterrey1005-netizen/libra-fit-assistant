@@ -79,6 +79,32 @@
     <div class="stats-grid" id="statsGrid"></div>
   </div>
 
+  <!-- v2.1: Control de versiones -->
+  <div class="card">
+    <div class="sec-t">🔄 Control de Versiones</div>
+    <div id="versionInfo" style="padding:12px;background:var(--bg3);border-radius:8px;margin-bottom:12px;font-size:13px">
+      Cargando...
+    </div>
+    <div class="sec-t" style="font-size:13px;margin-top:8px">Historial de commits (ultimos 30)</div>
+    <div class="scroll" style="max-height:400px">
+      <table id="versionsTable">
+        <thead><tr>
+          <th>Hash</th><th>Fecha</th><th>Mensaje</th><th>Accion</th>
+        </tr></thead>
+        <tbody id="versionsBody"></tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;padding:10px;background:var(--bg3);border-left:3px solid var(--yellow);border-radius:4px;font-size:11px;color:var(--t3)">
+      ℹ️ <b>Como hacer rollback:</b>
+      <ol style="margin:6px 0 0 20px;padding:0;line-height:1.6">
+        <li>Elige el commit a restaurar (click "Rollback")</li>
+        <li>El boton te copia el comando al portapapeles</li>
+        <li>Pegalo en tu terminal y ejecuta</li>
+        <li>Render auto-despliega la version anterior en ~2 min</li>
+      </ol>
+    </div>
+  </div>
+
   <div class="card">
     <div class="sec-t">👥 Usuarios</div>
     <div class="scroll">
@@ -180,6 +206,84 @@ async function loadAll() {
   renderUsers(d.users);
   loadAudit();
   loadErrors();
+  loadVersions();   // v2.1
+}
+
+// ===== VERSIONES / ROLLBACK (v2.1) =====
+async function loadVersions() {
+  if (!ADMIN_PW) return;
+  const info = $('versionInfo');
+  const body = $('versionsBody');
+  try {
+    // Version info actual
+    const r1 = await fetch(API + '/version-info?password=' + encodeURIComponent(ADMIN_PW));
+    if(r1.ok){
+      const v = await r1.json();
+      const envColor = v.environment === 'staging' ? '#fbbf24' : '#4ade80';
+      info.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><b>Ambiente:</b> <span style="color:${envColor};font-weight:700">${v.environment.toUpperCase()}</span></div>
+          <div><b>Rama:</b> ${v.branch}</div>
+          <div><b>Commit actual:</b> <code>${v.shortHash}</code></div>
+          <div><b>Supabase:</b> ${v.supabase ? '✅ Persistente' : '⚠️ Efimero'}</div>
+          <div style="grid-column:1/-1"><b>Deployed:</b> ${v.date}</div>
+          <div style="grid-column:1/-1"><b>Uptime:</b> ${Math.floor(v.uptime / 60)} min</div>
+        </div>
+      `;
+    }
+
+    // Lista de commits
+    const r2 = await fetch(API + '/versions?password=' + encodeURIComponent(ADMIN_PW));
+    if(!r2.ok){
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--t3)">No disponible</td></tr>';
+      return;
+    }
+    const d = await r2.json();
+    if(d.error){
+      body.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--yellow);padding:16px">⚠️ ${d.error}</td></tr>`;
+      return;
+    }
+
+    body.innerHTML = (d.commits || []).map(c => {
+      const rowBg = c.isCurrent ? 'rgba(74,222,128,0.1)' : 'transparent';
+      const actionBtn = c.isCurrent
+        ? '<span style="color:var(--green);font-size:11px;font-weight:700">▶ ACTUAL</span>'
+        : `<button class="outline" style="padding:4px 10px;font-size:11px"
+             onclick="rollbackTo('${c.hash}', '${c.shortHash}')">Rollback</button>`;
+      return `<tr style="background:${rowBg}">
+        <td><code>${c.shortHash}</code></td>
+        <td style="font-size:11px;color:var(--t3)">${c.date.slice(0, 10)}</td>
+        <td style="font-size:12px">${c.message.slice(0, 80)}${c.message.length > 80 ? '...' : ''}</td>
+        <td>${actionBtn}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    info.innerHTML = '<span style="color:var(--red)">Error cargando versiones: ' + e.message + '</span>';
+  }
+}
+
+function rollbackTo(fullHash, shortHash) {
+  const cmd = `git revert --no-commit ${fullHash}..HEAD && git commit -m "rollback: volver a ${shortHash}" && git push origin master`;
+  const cmdReset = `git reset --hard ${fullHash} && git push origin master --force`;
+
+  const msg = `Elige una estrategia de rollback a ${shortHash}:\n\n` +
+              `OPCION A (Safe - recomendada):\nCrea un commit nuevo que deshace los cambios. Historial se preserva.\n\n` +
+              `OPCION B (Destructive):\nBorra commits posteriores. Irrecuperable. Solo si sabes que haces.\n\n` +
+              `Escribe A o B:`;
+  const choice = prompt(msg, 'A');
+  if(!choice) return;
+
+  const command = choice.toUpperCase() === 'B' ? cmdReset : cmd;
+  const label = choice.toUpperCase() === 'B' ? 'DESTRUCTIVE' : 'SAFE';
+
+  // Copiar al portapapeles
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(command).then(() => {
+      alert(`Comando ${label} copiado al portapapeles:\n\n${command}\n\nPegalo en tu terminal local (cd al repo) y ejecuta.\nRender auto-deployara en ~2 min.`);
+    });
+  } else {
+    prompt('Copia este comando y ejecutalo en tu terminal:', command);
+  }
 }
 
 // ===== ERROR REPORTS =====
