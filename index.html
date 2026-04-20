@@ -99,6 +99,14 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+<!-- QUICK ADD FAB (v2.0) - siempre visible para agregar comida/ejercicio sobre la marcha -->
+<button class="quick-fab" id="quickFab" onclick="App.quickAddMenu()" title="Agregar rapido">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="24" height="24">
+    <line x1="12" y1="5" x2="12" y2="19"/>
+    <line x1="5" y1="12" x2="19" y2="12"/>
+  </svg>
+</button>
+
 <!-- LIBRA CHAT -->
 <button class="libra-fab" id="libraFab" onclick="libraUI.toggle()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="28" height="28">
@@ -180,6 +188,7 @@
 <script src="meals.js"></script>
 <script src="routines.js"></script>
 <script src="tracking.js"></script>
+<script src="chatFeedback.js"></script>
 <script src="onboarding.js"></script>
 <script src="libra.js"></script>
 <script src="app.js"></script>

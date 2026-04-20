@@ -855,3 +855,61 @@ input[type=number] { -moz-appearance: textfield }
 }
 .onb-sum-row:last-child { border-bottom: none; }
 .onb-sum-row span { color: var(--t3); }
+
+/* Quick Add FAB (v2.0) - siempre visible */
+.quick-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 152px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 16px rgba(74, 222, 128, 0.4);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  transition: transform 150ms ease;
+}
+.quick-fab:active { transform: scale(0.9); }
+.quick-fab:hover { transform: scale(1.05); }
+
+/* Ajustar posicion de libra-fab si ambos visibles */
+.libra-fab { bottom: 88px !important; }
+
+/* Menu desplegable del quick-add */
+.quick-menu {
+  position: fixed;
+  right: 16px;
+  bottom: 216px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  z-index: 201;
+  display: none;
+}
+.quick-menu.on { display: block; }
+.quick-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--t1);
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  width: 100%;
+  min-width: 180px;
+  text-align: left;
+  min-height: 44px;
+}
+.quick-menu-item:hover { background: var(--bg3); }
+.quick-menu-item .qm-icon { font-size: 18px; }

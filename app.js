@@ -70,6 +70,97 @@ const App={
     },50);
   },
 
+  // ===== QUICK ADD MENU (FAB flotante v2.0) =====
+  quickAddMenu(){
+    let menu = document.getElementById('quickMenu');
+    if(!menu){
+      menu = document.createElement('div');
+      menu.id = 'quickMenu';
+      menu.className = 'quick-menu';
+      menu.innerHTML = `
+        <button class="quick-menu-item" onclick="App.quickAddClose();App.showQuickAddFood()">
+          <span class="qm-icon">🍽️</span> Registrar comida
+        </button>
+        <button class="quick-menu-item" onclick="App.quickAddClose();App.quickAddWater()">
+          <span class="qm-icon">💧</span> Agregar agua
+        </button>
+        <button class="quick-menu-item" onclick="App.quickAddClose();App.quickLogWeight()">
+          <span class="qm-icon">⚖️</span> Registrar peso
+        </button>
+        <button class="quick-menu-item" onclick="App.quickAddClose();App.quickLogSup()">
+          <span class="qm-icon">💊</span> Tome suplemento
+        </button>
+      `;
+      document.body.appendChild(menu);
+      // Click fuera cierra
+      setTimeout(() => {
+        document.addEventListener('click', this._quickAddOutsideClick = (e) => {
+          if(!e.target.closest('#quickMenu') && !e.target.closest('#quickFab')){
+            this.quickAddClose();
+          }
+        });
+      }, 10);
+    }
+    menu.classList.toggle('on');
+  },
+  quickAddClose(){
+    const menu = document.getElementById('quickMenu');
+    if(menu) menu.classList.remove('on');
+    if(this._quickAddOutsideClick){
+      document.removeEventListener('click', this._quickAddOutsideClick);
+      this._quickAddOutsideClick = null;
+    }
+  },
+  quickAddWater(){
+    this.modal('💧 Agregar agua', `
+      <p style="color:var(--t2);font-size:13px;margin-bottom:12px">Cuanto tomaste?</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn-outline" onclick="App._addWater(250);App.closeModal()" style="min-height:48px">250 mL</button>
+        <button class="btn-outline" onclick="App._addWater(500);App.closeModal()" style="min-height:48px">500 mL</button>
+        <button class="btn-outline" onclick="App._addWater(1000);App.closeModal()" style="min-height:48px">1 L</button>
+      </div>
+      <input type="number" id="waterCustom" class="search-inp" placeholder="Cantidad en mL" style="width:100%;margin-bottom:8px">
+      <button class="btn-accent" style="width:100%" onclick="const v=+document.getElementById('waterCustom').value;if(v>0){App._addWater(v);App.closeModal()}">Agregar</button>
+    `);
+  },
+  _addWater(ml){
+    const st = getDay();
+    st.water = (st.water || 0) + ml;
+    saveDay(st);
+    this.toast(`💧 +${ml} mL (${(st.water/1000).toFixed(1)}L hoy)`);
+    this.renderAll();
+  },
+  quickLogWeight(){
+    this.modal('⚖️ Registrar peso', `
+      <p style="color:var(--t2);font-size:13px;margin-bottom:12px">Cual es tu peso actual (lbs)?</p>
+      <input type="number" id="weightInp" class="search-inp" placeholder="175.5" step="0.1" style="width:100%;margin-bottom:12px" autofocus>
+      <button class="btn-accent" style="width:100%" onclick="const v=+document.getElementById('weightInp').value;if(v>50){const w=getWeights();w.unshift({date:dk(),weight:v});saveWeights(w);App.toast('⚖️ Peso guardado: '+v+' lbs');App.closeModal();App.renderAll()}">Guardar</button>
+    `);
+  },
+  quickLogSup(){
+    const mySups = getMySups();
+    if(!mySups.length){
+      this.toast('Sin suplementos configurados. Agregalos en Progreso.');
+      return;
+    }
+    const SDB = window.SupplementsDB;
+    if(!SDB){ this.toast('SupplementsDB no cargado'); return; }
+    const opts = mySups.map(id => {
+      const s = SDB.getSupplement(id);
+      return s ? `<button class="btn-outline" style="width:100%;margin-bottom:6px;text-align:left;min-height:44px" onclick="App._logSup('${id}');App.closeModal()">${s.name}</button>` : '';
+    }).join('');
+    this.modal('💊 Tome suplemento', `
+      <p style="color:var(--t2);font-size:13px;margin-bottom:12px">Cual tomaste?</p>
+      ${opts}
+    `);
+  },
+  _logSup(id){
+    const logs = S.g('supLogs', []);
+    logs.unshift({ id, at: new Date().toISOString() });
+    S.s('supLogs', logs.slice(0, 500));
+    this.toast('💊 Registrado');
+  },
+
   // ===== QUICK ADD FOOD =====
   showQuickAddFood(){
     const quick=[

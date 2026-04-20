@@ -75,6 +75,7 @@ app.use('/api/data', require('./routes/data'));
 app.use('/api/audit', require('./routes/audit'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/errors', require('./routes/errors'));
+app.use('/api/chat', require('./routes/chat'));
 
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {

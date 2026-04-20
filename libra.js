@@ -47,6 +47,14 @@ const Libra = {
     const n = this.norm(text);
     const w = n.split(/\s+/);
 
+    // --- REJECTION FEEDBACK (v2.0) ---
+    // Usuario dice que no entendimos bien
+    if (this.fuzzy(n, ['no es eso', 'estas mal', 'eso no', 'no te entendi', 'no pedi eso',
+                        'no era esto', 'mal respuesta', 'eso no era', 'no me entendiste',
+                        'no queria eso', 'mal calculado', 'estas equivocada'])) {
+      return { intent: 'rejection', originalText: text };
+    }
+
     // --- GREETINGS ---
     if (this.fuzzy(n, ['hola', 'hey', 'buenas', 'buenos dias', 'buenas tardes', 'buenas noches', 'que tal', 'como estas', 'saludos']))
       return { intent: 'greeting' };
@@ -414,6 +422,17 @@ const Libra = {
     let response = '', action = null;
 
     switch (intent.intent) {
+
+      case 'rejection': {
+        // v2.0: Usuario dice que no entendimos bien
+        const lastUserMsg = (this.history[this.history.length - 2] || {}).text;
+        const lastBotMsg = (this.history[this.history.length - 1] || {}).text;
+        if(typeof ChatFeedback !== 'undefined'){
+          ChatFeedback.reportRejection(lastUserMsg || '', lastBotMsg || '', intent.originalText);
+        }
+        response = 'Perdon. Me equivoque. Puedes decirmelo de otra forma? Si es importante, lo marco para mejorar mi entendimiento.';
+        break;
+      }
 
       case 'greeting': {
         const h = now.getHours();
@@ -1181,6 +1200,16 @@ const Libra = {
           '• 💡 Tips de fitness ("dame un consejo")\n' +
           '• 💪 Motivarte ("dame animo")\n\n' +
           'Intenta algo como: "que como hoy?", "cuanta agua llevo?", o "cuanta proteina necesito?"';
+
+        // v2.0: Reportar miss al admin para poder entrenar el chat
+        if (typeof ChatFeedback !== 'undefined') {
+          ChatFeedback.reportMiss(
+            intent.originalText || '',
+            intent.type || 'unknown',
+            response,
+            { ...this.context }
+          );
+        }
     }
 
     return { response, action };
